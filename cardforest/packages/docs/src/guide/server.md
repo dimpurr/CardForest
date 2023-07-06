@@ -1,5 +1,7 @@
 # Server
 
+NestJS + Passport.js + Nest Access Control + Express + GraphQL (apollo) + ArangoDB
+
 ## 文件夹结构
 
 - `src/`：应用程序代码根目录
