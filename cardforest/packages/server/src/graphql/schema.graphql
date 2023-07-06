@@ -1,0 +1,16 @@
+type Query {
+  getAllUsers: [User]
+  getAllCards: [Card]
+}
+
+type User {
+  id: ID!
+  username: String!
+  password: String!
+}
+
+type Card {
+  id: ID!
+  title: String!
+  content: String!
+}

@@ -1,50 +1,50 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Database, aql } from 'arangojs';
+import { Database } from 'arangojs';
 
 @Injectable()
 export class ArangoDBService {
   private db: Database;
+  private databaseName: string;
 
   constructor(private readonly configService: ConfigService) {
     const arangoDBUrl = this.configService.get<string>('ARANGO_DB_URL');
     const arangoDBPassword =
       this.configService.get<string>('ARANGO_DB_PASSWORD');
-
-    console.log('arangoDBUrl', arangoDBUrl);
-    console.log('arangoDBPassword', arangoDBPassword);
+    this.databaseName = this.configService.get<string>('ARANGO_DB_NAME');
 
     this.db = new Database({
       url: arangoDBUrl,
-      //   databaseName: 'pancakes',
       auth: {
         username: 'root',
         password: arangoDBPassword,
       },
     });
-    this.db.listUserDatabases().then((dbs) => console.log(dbs));
   }
 
-  async createInitialDatabase(databaseName: string): Promise<void> {
+  async createDatabase(): Promise<void> {
     try {
-      const exists = await this.databaseExists(databaseName);
+      const exists = await this.databaseExists();
       if (!exists) {
-        await this.db.createDatabase(databaseName);
-        console.log(`Created initial database: ${databaseName}`);
+        await this.db.createDatabase(this.databaseName);
+        console.log(`Created database: ${this.databaseName}`);
       }
-      this.db.listUserDatabases().then((dbs) => console.log(dbs));
     } catch (error) {
-      console.error('Failed to create or use initial database:', error);
+      console.error('Failed to create or use database:', error);
     }
   }
 
-  private async databaseExists(databaseName: string): Promise<boolean> {
+  private databaseExists = async (): Promise<boolean> => {
     try {
       const databases = await this.db.listUserDatabases();
-      return databases.some((database) => database === databaseName);
+      return databases.some((database) => database === this.databaseName);
     } catch (error) {
       console.error('Failed to check database existence:', error);
       return false;
     }
+  };
+
+  getDatabase(): Database {
+    return this.db.database(this.databaseName);
   }
 }
