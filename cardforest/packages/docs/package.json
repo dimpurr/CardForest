@@ -1,0 +1,19 @@
+{
+  "name": "cardforest-docs",
+  "version": "0.0.1",
+  "description": "a graph note database",
+  "main": "index.js",
+  "authors": {
+    "name": "dimpurr",
+    "email": "dimpurr@live.com"
+  },
+  "repository": "https://github.com/dimpurr/CardForest/cardforest-docs",
+  "scripts": {
+    "dev": "vuepress dev src",
+    "build": "vuepress build src"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "vuepress": "^1.5.3"
+  }
+}
