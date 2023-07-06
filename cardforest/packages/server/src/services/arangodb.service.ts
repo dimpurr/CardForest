@@ -34,7 +34,22 @@ export class ArangoDBService {
     }
   }
 
-  private databaseExists = async (): Promise<boolean> => {
+  async createCollections(): Promise<void> {
+    try {
+      const db = this.db.database(this.databaseName);
+      await this.createCollection(db, 'cards');
+      await this.createCollection(db, 'users');
+      console.log('Created collections: cards, users');
+    } catch (error) {
+      console.error('Failed to create collections:', error);
+    }
+  }
+
+  getDatabase(): Database {
+    return this.db.database(this.databaseName);
+  }
+
+  private async databaseExists(): Promise<boolean> {
     try {
       const databases = await this.db.listUserDatabases();
       return databases.some((database) => database === this.databaseName);
@@ -42,9 +57,16 @@ export class ArangoDBService {
       console.error('Failed to check database existence:', error);
       return false;
     }
-  };
+  }
 
-  getDatabase(): Database {
-    return this.db.database(this.databaseName);
+  private async createCollection(
+    db: Database,
+    collectionName: string,
+  ): Promise<void> {
+    const collection = db.collection(collectionName);
+    const exists = await collection.exists();
+    if (!exists) {
+      await collection.create();
+    }
   }
 }
