@@ -10,9 +10,14 @@ if [ $(docker ps -q -f name=arangodb-instance) ]; then
     docker rm arangodb-instance
 fi
 
+# 提示用户输入密码
+echo "请输入 ArangoDB 的密码："
+read -s arangoPassword
+
 # 运行新的 ArangoDB 容器，并将持久化目录挂载到容器中
-docker run -e ARANGO_RANDOM_ROOT_PASSWORD=1 -p 8529:8529 -d \
+docker run -e ARANGO_ROOT_PASSWORD=$arangoPassword -p 8529:8529 -d \
     --name arangodb-instance \
+    --restart=unless-stopped \
     -v "$(pwd)/tmp/arangodb:/var/lib/arangodb3" \
     arangodb
 
