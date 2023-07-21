@@ -12,6 +12,7 @@ export class InstallService {
   ) {}
 
   async install(): Promise<any[]> {
+    await this.arangoDBService.clearDatabase();
     await this.arangoDBService.createDatabase();
     await this.arangoDBService.createCollections();
     await this.createDefaultUser();

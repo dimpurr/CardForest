@@ -45,6 +45,19 @@ export class ArangoDBService {
     }
   }
 
+  async clearDatabase(): Promise<void> {
+    try {
+      const db = this.db.database(this.databaseName);
+      const collections = await db.collections();
+      for (const collection of collections) {
+        await collection.truncate();
+      }
+      console.log(`Cleared database: ${this.databaseName}`);
+    } catch (error) {
+      console.error('Failed to clear database:', error);
+    }
+  }
+
   getDatabase(): Database {
     return this.db.database(this.databaseName);
   }
