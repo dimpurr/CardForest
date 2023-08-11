@@ -9,6 +9,9 @@ import { ArangoDBService } from './services/arangodb.service';
 import { InstallService } from './services/install.service';
 import { CardService } from './services/card.service';
 import { UserService } from './services/user.service';
+import { CardResolver } from './graphql/card.resolver';
+import { UserResolver } from './graphql/user.resolver';
+
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -27,6 +30,8 @@ import { UserService } from './services/user.service';
     InstallService,
     CardService,
     UserService,
+    CardResolver,
+    UserResolver,
   ],
 })
 export class AppModule {}

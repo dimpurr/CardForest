@@ -1,16 +1,16 @@
 type Query {
-  getAllUsers: [User]
-  getAllCards: [Card]
+  users: [User]
+  cards: [Card]
 }
 
 type User {
-  id: ID!
+  _id: ID!
   username: String!
   password: String!
 }
 
 type Card {
-  id: ID!
+  _id: ID!
   title: String!
   content: String!
 }

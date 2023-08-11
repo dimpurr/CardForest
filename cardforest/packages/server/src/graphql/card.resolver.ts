@@ -8,5 +8,6 @@ export class CardResolver {
   @Query()
   async cards() {
     return this.cardService.getCards();
+    // return [{ id: 1 }, { id: 2 }];
   }
 }
