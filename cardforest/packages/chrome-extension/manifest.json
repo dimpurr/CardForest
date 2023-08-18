@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "CardForest",
+  "version": "1.0",
+  "description": "tools",
+  "permissions": ["activeTab", "storage"],
+  "host_permissions": ["http://*.pixiv.net/", "https://*.pixiv.net/"],
+  "content_scripts": [
+    {
+      "matches": ["https://www.pixiv.net/artworks/*"],
+      "js": ["content.js"]
+    }
+  ]
+}
