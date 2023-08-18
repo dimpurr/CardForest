@@ -107,3 +107,10 @@ cardf://[localhost|custhost.com|cardforest.dim.moe]/~username/(mutex/node/path/.
 
 这样的标识可以用于分享和访问 CardForest 中的资源。
 
+## 远景
+
+随着数字时代的发展，我们的线上收藏和信息已经遍布多个平台。为了更好地整合这些分散的数据，并赋予其更高级的管理和分类能力，CardForest 正在努力成为您的首选信息中心。想象一下，如果您能为您在Pixiv、知乎等多个平台上的收藏统一添加 OOP 的标签、分类、评分，那么管理和寻找这些收藏将变得如此轻松。
+
+为实现这个目标，CardForest 将会提供各种 SourceProvider。例如，PixivSourceProvider 旨在在您登录 Pixiv 账号后，同步并展示您收藏夹中的全部内容缩略图，让您不仅可以浏览，还可以进行批量管理。而所有这些均通过先进的技术如 HeadlessBrowser 来实现。
+
+未来，除了 Pixiv 和知乎，我们也计划接入更多的平台，例如豆瓣、Twitter 或 Pinterest。无论是电影、图书、推文还是图像，您都可以在 CardForest 中方便地管理和查询，实现真正的跨平台整合。让我们一起期待 CardForest 带来的更多可能性和创新。
