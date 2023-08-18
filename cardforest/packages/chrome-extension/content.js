@@ -2,27 +2,22 @@ const getResolution = async (pixivId) => {
     try {
         const response = await fetch(`https://www.pixiv.net/ajax/illust/${pixivId}/pages`);
         const data = await response.json();
+        const resolutions = [];
 
         if (data && data.body) {
-            const resolutions = [];
             for (let item of data.body) {
-                const imgUrl = item.urls.original;
-                const image = new Image();
-                image.src = imgUrl;
-                image.onload = () => {
-                    resolutions.push({ width: image.width, height: image.height });
-                    if (resolutions.length === data.body.length) {
-                        console.log('All resolutions fetched:', resolutions);
-                        localStorage.setItem(`pixiv_${pixivId}_resolution`, JSON.stringify(resolutions));
-                        displayResolution(resolutions);
-                    }
-                };
+                resolutions.push({ width: item.width, height: item.height });
             }
         }
+
+        return resolutions;
+
     } catch (error) {
         console.error("Error fetching resolution:", error);
+        return [];
     }
 }
+
 
 const displayResolution = (resolutions) => {
     const targetDiv = document.querySelector('body');
@@ -66,20 +61,50 @@ const displayLoading = () => {
     }
 }
 
-const processPage = () => {
-    const pixivId = window.location.pathname.split('/')[2];
-    if (pixivId) {
-        displayLoading();
 
+const processSinglePage = async (pixivId) => {
+    displayLoading();
+    const storedResolution = JSON.parse(localStorage.getItem(`pixiv_${pixivId}_resolution`));
+    if (storedResolution) {
+        displayResolution(storedResolution);
+    } else {
+        const fetchedResolutions = await getResolution(pixivId);
+        localStorage.setItem(`pixiv_${pixivId}_resolution`, JSON.stringify(fetchedResolutions));
+        displayResolution(fetchedResolutions);
+    }
+}
+
+const processBookmarkPage = async () => {
+    const artworkLinks = document.querySelectorAll('a[data-gtm-value]');
+    const allResolutions = [];
+
+    displayLoading();
+
+    console.log('artworkLinks', artworkLinks)
+
+    for (const link of artworkLinks) {
+        const pixivId = link.getAttribute('data-gtm-value');
         const storedResolution = JSON.parse(localStorage.getItem(`pixiv_${pixivId}_resolution`));
-        console.log('storedResolution', storedResolution);
         if (storedResolution) {
-            console.log('displaying stored resolution');
-            displayResolution(storedResolution);
+            allResolutions.push(storedResolution);
+            console.log('Read resolution for', pixivId, allResolutions)
         } else {
-            console.log('fetching resolution');
-            getResolution(pixivId);
+            const fetchedResolutions = await getResolution(pixivId);
+            localStorage.setItem(`pixiv_${pixivId}_resolution`, JSON.stringify(fetchedResolutions));
+            allResolutions.push(fetchedResolutions);
+            console.log('Fetched resolution for', pixivId, allResolutions)
         }
+    }
+
+    displayResolution(allResolutions.flat());
+}
+
+const processPage = () => {
+    if (window.location.pathname.startsWith('/artworks/')) {
+        const pixivId = window.location.pathname.split('/')[2];
+        processSinglePage(pixivId);
+    } else if (window.location.pathname.startsWith('/users/') && window.location.pathname.endsWith('/bookmarks/artworks')) {
+        setInterval(processBookmarkPage, 10000);
     }
 }
 
