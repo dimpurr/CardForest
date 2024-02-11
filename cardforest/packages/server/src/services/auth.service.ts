@@ -11,12 +11,9 @@ export class AuthService {
   ) {}
 
   async validateUser(username: string, pass: string): Promise<any> {
-    // 查找用户是否存在
     const user = await this.usersService.findUserByUsername(username);
-
-    // 如果用户存在且密码比较匹配
     if (user && (await bcrypt.compare(pass, user.password))) {
-      const { password, ...result } = user; // 不返回密码字段
+      const { password, ...result } = user;
       return result;
     }
     return null;
@@ -27,6 +24,27 @@ export class AuthService {
     return {
       access_token: this.jwtService.sign(payload),
     };
+  }
+
+  async validateOAuthLogin(profile): Promise<string> {
+    // 根据第三方服务提供的信息查找或创建用户
+    let user = await this.usersService.findUserByUsername(profile.username);
+
+    if (!user) {
+      // 为新用户创建账号，此处应该生成一个随机密码或特定于应用的账户创建策略
+      const randomPassword = Math.random().toString(36).slice(-8);
+      const hashedPassword = await bcrypt.hash(randomPassword, 10);
+      user = await this.usersService.createUser(
+        profile.username,
+        hashedPassword,
+      );
+    }
+
+    // 为用户生成 JWT
+    const payload = { username: user.username, sub: user._key };
+    const access_token = this.jwtService.sign(payload);
+
+    return access_token;
   }
 
   // ... 其他必要的方法 ...
