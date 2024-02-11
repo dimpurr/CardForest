@@ -23,7 +23,7 @@ export class UserController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get('manager')
+  @Get('manage')
   async getAllUsers(): Promise<any[]> {
     // 这里你可能需要一些权限校验，确保只有管理员可以访问
     return await this.userService.getUsers();

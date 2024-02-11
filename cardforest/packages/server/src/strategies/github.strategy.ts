@@ -13,7 +13,7 @@ export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
     super({
       clientID: process.env.GITHUB_CLIENT_ID, // 从环境变量中获取
       clientSecret: process.env.GITHUB_CLIENT_SECRET, // 从环境变量中获取
-      callbackURL: 'http://localhost:3030/auth/github/callback',
+      callbackURL: 'http://localhost:3030/user/auth/github/callback',
       scope: ['user:email'],
     });
   }

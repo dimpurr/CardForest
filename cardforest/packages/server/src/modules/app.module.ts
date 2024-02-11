@@ -11,8 +11,8 @@ import { CardService } from '../services/card.service';
 import { UserService } from '../services/user.service';
 import { CardResolver } from '../graphql/card.resolver';
 import { UserResolver } from '../graphql/user.resolver';
-import { AuthModule } from './auth.module';
 import { DatabaseModule } from './database.module';
+import { UserModule } from './user.module';
 
 @Module({
   imports: [
@@ -26,7 +26,7 @@ import { DatabaseModule } from './database.module';
         path: join(process.cwd(), 'src/graphql.ts'),
       },
     }),
-    AuthModule,
+    UserModule,
     DatabaseModule,
   ],
   controllers: [AppController],

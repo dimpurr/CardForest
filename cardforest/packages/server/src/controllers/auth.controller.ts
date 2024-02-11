@@ -11,7 +11,7 @@ import { Request, Response } from 'express';
 import { AuthService } from '../services/auth.service';
 import { JwtService } from '@nestjs/jwt';
 
-@Controller('auth')
+@Controller('user/auth')
 export class AuthController {
   constructor(
     private authService: AuthService,
@@ -44,7 +44,7 @@ export class AuthController {
 
     // 从查询参数获取动态的回调 URL
     // const callbackUrl = req.query.callbackUrl || `${frontendUrl}/auth-callback`;
-    const callbackUrl = 'http://localhost:3030/auth/auth-callback-backend';
+    const callbackUrl = 'http://localhost:3030/user/auth/auth-callback-backend';
 
     // 重定向到提供的回调 URL 或默认回调 URL
     res.redirect(callbackUrl);
