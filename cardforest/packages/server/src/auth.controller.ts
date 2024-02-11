@@ -1,7 +1,14 @@
-import { Controller, Get, UseGuards, Req, Res } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  UseGuards,
+  Req,
+  Res,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Request, Response } from 'express';
-import { AuthService } from './auth.service';
+import { AuthService } from './services/auth.service';
 
 @Controller('auth')
 export class AuthController {
@@ -10,17 +17,32 @@ export class AuthController {
   @Get('github')
   @UseGuards(AuthGuard('github'))
   githubAuth() {
-    // initiates the GitHub OAuth2 login flow
+    // Passport 自动处理 GitHub 登录流程
   }
 
   @Get('github/callback')
   @UseGuards(AuthGuard('github'))
   async githubAuthRedirect(@Req() req: Request, @Res() res: Response) {
-    // handles the GitHub OAuth2 callback
-    // 用户信息现在可以通过 req.user 访问
-    // 通常这里会生成一个 token 发送给客户端或者重定向到一个新页面
+    // Passport 会处理认证并在请求对象中注入用户信息
+    // 如果认证失败，用户将不会被注入，并且 Passport 抛出一个错误
+    if (!req.user) {
+      throw new UnauthorizedException();
+    }
+
+    // 用户信息已通过 Passport 策略的 validate 方法被验证并添加到 req.user
     const user = req.user;
-    const token = await this.authService.login(user);
-    res.redirect(`/?token=${token.access_token}`);
+
+    // 在 AuthService 中执行登录逻辑，例如生成 JWT
+    const loginResult = await this.authService.login(user);
+
+    // 定义你的前端 URL
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+    // 将用户重定向到前端应用，携带 JWT
+    // 注意：将 token 作为 URL 参数传递可能不是最安全的方式，具体取决于你的应用情况
+    // 可能更安全的方案是设置一个 HttpOnly 的 cookie 或者通过某种形式的后端存储
+    res.redirect(
+      `${frontendUrl}/auth-callback?token=${loginResult.access_token}`,
+    );
   }
 }

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
-import { AuthService } from './auth.service'; // 需要实现 AuthService
+import { AuthService } from './services/auth.service'; // 需要实现 AuthService
 import { GithubStrategy } from './strategies/github.strategy'; // 需要实现 GithubStrategy
 import { AuthController } from './auth.controller';
 import { UserService } from './services/user.service'; // 需要实现 UsersService
