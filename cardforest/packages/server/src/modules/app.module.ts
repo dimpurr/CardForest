@@ -13,6 +13,7 @@ import { CardResolver } from '../graphql/card.resolver';
 import { UserResolver } from '../graphql/user.resolver';
 import { DatabaseModule } from './database.module';
 import { UserModule } from './user.module';
+import { CardController } from 'src/controllers/card.controller';
 
 @Module({
   imports: [
@@ -29,7 +30,7 @@ import { UserModule } from './user.module';
     UserModule,
     DatabaseModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, CardController],
   providers: [
     AppService,
     // ArangoDBService,

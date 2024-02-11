@@ -6,6 +6,7 @@ export class AppService {
     return `Hello World!
       <h2>query</h2>
       <a href="/card">card</a>
+      <a href="/card/full">card/full</a>
       <h2>auth</h2>
       <a href="/user/auth/github">user/auth/github</a>
       <a href="/user/current">user/current</a>
