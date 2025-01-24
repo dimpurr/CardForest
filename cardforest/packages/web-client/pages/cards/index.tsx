@@ -3,7 +3,7 @@ import { useQuery, gql } from '@apollo/client';
 import { signIn, signOut } from 'next-auth/react';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
-import CreateCard from '@/components/CreateCard';
+import { CreateCard } from '@/components/CreateCard';
 import { useCallback, useEffect } from 'react';
 import { useJWT } from '@/hooks/useJWT';
 import { useAtom } from 'jotai';

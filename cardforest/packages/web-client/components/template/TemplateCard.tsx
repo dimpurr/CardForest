@@ -54,14 +54,14 @@ export function TemplateCard({ template, isSelected, onClick }: TemplateCardProp
       <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
         <div className="mb-2">
           <strong>Fields:</strong>{' '}
-          {template.fields.reduce((count, group) => count + group.fields.length, 0)}
+          {(template.fields || []).reduce((count, group) => count + (group.fields?.length || 0), 0)}
         </div>
-        {template.fields.map((group) => (
+        {(template.fields || []).map((group) => (
           <div key={group._inherit_from} className="text-xs">
             <span className="text-gray-500">
               {group._inherit_from === '_self' ? 'Own fields' : `From ${group._inherit_from}`}:
             </span>{' '}
-            {group.fields.map((field) => field.name).join(', ')}
+            {(group.fields || []).map((field) => field.name).join(', ')}
           </div>
         ))}
       </div>
