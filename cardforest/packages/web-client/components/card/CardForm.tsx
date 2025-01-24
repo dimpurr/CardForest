@@ -1,108 +1,112 @@
-import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
-import { Select } from '@/components/ui/Select';
-import { Button } from '@/components/ui/Button';
+import { getInheritedFields, getOwnFields } from '@/utils/templateUtils';
+import { Template } from '@/types/template';
 
 interface CardFormProps {
-  mode: 'create' | 'edit';
-  template: any;
-  initialValues?: any;
+  template: Template;
   onSubmit: (data: any) => void;
+  defaultValues?: any;
 }
 
-export function CardForm({ mode, template, initialValues, onSubmit }: CardFormProps) {
-  const [formData, setFormData] = useState<Record<string, any>>(initialValues || {});
+export function CardForm({ template, onSubmit, defaultValues = {} }: CardFormProps) {
+  // 构建动态的 schema
+  const formSchema = z.object(
+    template.fields.reduce((acc: any, group) => {
+      const fields = group._inherit_from === '_self' ? group.fields : [];
+      fields.forEach((field: any) => {
+        let fieldSchema = z.string();
+        if (field.required) {
+          fieldSchema = fieldSchema.min(1, { message: 'Required' });
+        } else {
+          fieldSchema = fieldSchema.optional();
+        }
+        acc[field.name] = fieldSchema;
+      });
+      return acc;
+    }, {})
+  );
 
-  useEffect(() => {
-    if (initialValues) {
-      setFormData(initialValues);
-    }
-  }, [initialValues]);
+  const form = useForm({
+    resolver: zodResolver(formSchema),
+    defaultValues,
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(formData);
-  };
+  const ownFields = getOwnFields(template);
+  const inheritedFields = getInheritedFields(template);
 
-  const handleChange = (fieldName: string, value: any) => {
-    setFormData((prev) => ({
-      ...prev,
-      [fieldName]: value,
-    }));
-  };
-
-  const allFields = template.fields.reduce((acc: any[], group: any) => {
-    return [...acc, ...group.fields];
-  }, []);
+  const renderField = (field: any, formField: any) => (
+    <FormControl>
+      {field.type === 'text' || field.type === 'date' || field.type === 'boolean' ? (
+        <Input {...formField} type={field.type} />
+      ) : (
+        <Textarea {...formField} />
+      )}
+    </FormControl>
+  );
 
   return (
-    <form id="card-form" onSubmit={handleSubmit} className="space-y-6">
-      {allFields.map((field: any) => (
-        <div key={field.name} className="space-y-2">
-          <label htmlFor={field.name} className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            {field.name}
-            {field.required && <span className="text-red-500 ml-1">*</span>}
-          </label>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6" id="card-form">
+        {/* 显示自己的字段 */}
+        {ownFields.length > 0 && (
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium text-gray-700">Own fields</h3>
+            {ownFields.map((field: any) => (
+              <FormField
+                key={field.name}
+                control={form.control}
+                name={field.name}
+                render={({ field: formField }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {field.name}
+                      {field.required && '*'}
+                    </FormLabel>
+                    {renderField(field, formField)}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ))}
+          </div>
+        )}
 
-          {field.type === 'text' && (
-            <Input
-              id={field.name}
-              type="text"
-              value={formData[field.name] || ''}
-              onChange={(e) => handleChange(field.name, e.target.value)}
-              required={field.required}
-            />
-          )}
-
-          {field.type === 'date' && (
-            <Input
-              id={field.name}
-              type="date"
-              value={formData[field.name] || ''}
-              onChange={(e) => handleChange(field.name, e.target.value)}
-              required={field.required}
-            />
-          )}
-
-          {field.type === 'boolean' && (
-            <Input
-              id={field.name}
-              type="checkbox"
-              checked={formData[field.name] || false}
-              onChange={(e) => handleChange(field.name, e.target.checked)}
-              required={field.required}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-          )}
-
-          {field.type === 'select' && (
-            <Select
-              id={field.name}
-              value={formData[field.name] || ''}
-              onChange={(e) => handleChange(field.name, e.target.value)}
-              required={field.required}
-            >
-              <option value="">Select...</option>
-              {field.options?.map((option: string) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </Select>
-          )}
-
-          {field.type === 'richtext' && (
-            <Textarea
-              id={field.name}
-              value={formData[field.name] || ''}
-              onChange={(e) => handleChange(field.name, e.target.value)}
-              required={field.required}
-              rows={4}
-            />
-          )}
-        </div>
-      ))}
-    </form>
+        {/* 显示继承的字段 */}
+        {inheritedFields.length > 0 && (
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium text-gray-700">Inherited fields</h3>
+            {inheritedFields.map((field: any) => (
+              <FormField
+                key={field.name}
+                control={form.control}
+                name={field.name}
+                render={({ field: formField }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {field.name}
+                      {field.required && '*'}
+                    </FormLabel>
+                    {renderField(field, formField)}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ))}
+          </div>
+        )}
+      </form>
+    </Form>
   );
 }

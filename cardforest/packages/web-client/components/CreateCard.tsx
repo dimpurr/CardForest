@@ -1,71 +1,71 @@
-import { useQuery } from '@apollo/client';
-import { useRouter } from 'next/router';
 import { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from './ui/Dialog';
-import { Button } from './ui/Button';
-import { GET_TEMPLATES } from '../graphql/queries';
-import { Template } from '../types/template';
-import { TemplateCard } from './template/TemplateCard';
+import { useRouter } from 'next/router';
+import { useQuery } from '@apollo/client';
+import { GET_TEMPLATES } from '@/graphql/queries/templateQueries';
+import { TemplateCard } from '@/components/template/TemplateCard';
+import { Button } from '@/components/ui/Button';
+import { Alert } from '@/components/ui/alert';
+import { getTemplateId } from '@/utils/templateUtils';
 
 export function CreateCard({ onCardCreated }: { onCardCreated?: () => void }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
 
-  const { data: templatesData, loading: templatesLoading } = useQuery(GET_TEMPLATES);
-  const templates = templatesData?.templates || [];
+  const { data, loading, error } = useQuery(GET_TEMPLATES);
 
-  const handleCreateCard = (template: Template) => {
-    setOpen(false);
-    const templateId = template._key.replace('templates/', '');
-    router.push(`/cards/new?templateId=${templateId}`);
-    onCardCreated?.();
+  if (loading) {
+    return (
+      <div className="p-6">
+        <Alert>
+          <Alert.Description>Loading templates...</Alert.Description>
+        </Alert>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <Alert variant="error">
+          <Alert.Title>Error</Alert.Title>
+          <Alert.Description>{error.message}</Alert.Description>
+        </Alert>
+      </div>
+    );
+  }
+
+  const handleContinue = () => {
+    if (selectedTemplateId) {
+      const templateId = getTemplateId(selectedTemplateId);
+      if (templateId) {
+        router.push(`/cards/new?templateId=${templateId}`);
+        onCardCreated?.();
+      }
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button onClick={() => setOpen(true)}>Create Card</Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle>Create New Card</DialogTitle>
-        </DialogHeader>
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {data?.templates?.map((template: any) => (
+          <TemplateCard
+            key={template._id}
+            template={template}
+            templates={data.templates}
+            isSelected={selectedTemplateId === template._id}
+            onClick={() => setSelectedTemplateId(template._id)}
+          />
+        ))}
+      </div>
 
-        <div className="py-4">
-          <h4 className="text-sm font-medium mb-3">Template</h4>
-          {templatesLoading ? (
-            <div>Loading templates...</div>
-          ) : (
-            <div className="grid gap-4">
-              {templates.map((template: Template) => (
-                <TemplateCard
-                  key={template._key}
-                  template={template}
-                  isSelected={selectedTemplate?._key === template._key}
-                  onClick={() => setSelectedTemplate(template)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        <DialogFooter>
-          <Button
-            onClick={() => selectedTemplate && handleCreateCard(selectedTemplate)}
-            disabled={!selectedTemplate}
-          >
-            Continue
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <div className="flex justify-end">
+        <Button
+          onClick={handleContinue}
+          disabled={!selectedTemplateId}
+        >
+          Continue
+        </Button>
+      </div>
+    </div>
   );
 }
