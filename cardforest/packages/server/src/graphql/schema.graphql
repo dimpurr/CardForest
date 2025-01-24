@@ -1,16 +1,38 @@
 type Query {
   users: [User]
   cards: [Card]
+  myCards: [Card]
+  card(id: ID!): Card
+}
+
+type Mutation {
+  createCard(input: CreateCardInput!): Card
+  updateCard(id: ID!, input: UpdateCardInput!): Card
+  deleteCard(id: ID!): Boolean
 }
 
 type User {
   _id: ID!
   username: String!
   password: String!
+  cards: [Card]
 }
 
 type Card {
   _id: ID!
   title: String!
   content: String!
+  createdBy: User!
+  createdAt: String!
+  updatedAt: String
+}
+
+input CreateCardInput {
+  title: String!
+  content: String!
+}
+
+input UpdateCardInput {
+  title: String
+  content: String
 }
