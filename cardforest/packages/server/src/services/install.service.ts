@@ -3,6 +3,8 @@ import { UserService } from './user.service';
 import { CardService } from './card.service';
 import { ArangoDBService } from './arangodb.service';
 
+// NOTE: This service is only used for the initial installation of the database.
+
 @Injectable()
 export class InstallService {
   constructor(

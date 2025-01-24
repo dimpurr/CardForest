@@ -11,6 +11,9 @@ import { Request, Response } from 'express';
 import { AuthService } from '../services/auth.service';
 import { JwtService } from '@nestjs/jwt';
 
+// NOTE: 后端 debug 的页面都保持简洁的 html 形式
+
+// NOTE: 这是给后端自己 debug 用的后端登录流程，别跳到前端
 @Controller('user/auth')
 export class AuthController {
   constructor(
@@ -32,7 +35,7 @@ export class AuthController {
 
     // 生成 JWT token
     const access_token = await this.authService.validateOAuthLogin(req.user);
-    
+
     // 设置 JWT cookie
     res.cookie('jwt', access_token, {
       httpOnly: true,
@@ -44,6 +47,7 @@ export class AuthController {
     res.redirect('/user/auth/auth-callback-backend');
   }
 
+  // NOTE: 这是后端 debug 自己的登录成功界面
   @Get('auth-callback-backend')
   authCallbackBackend(@Req() req: Request, @Res() res: Response) {
     try {
@@ -57,7 +61,9 @@ export class AuthController {
         <p><a href="/user/auth/logout">登出</a></p>
       `);
     } catch (e) {
-      res.send(`<h1>未授权</h1><p>无效的 token 或 token 未提供。</p><p><a href="/user/auth/github">重新登录</a></p>`);
+      res.send(
+        `<h1>未授权</h1><p>无效的 token 或 token 未提供。</p><p><a href="/user/auth/github">重新登录</a></p>`,
+      );
     }
   }
 
@@ -65,37 +71,11 @@ export class AuthController {
   logout(@Res() res: Response) {
     // 清除 JWT cookie
     res.clearCookie('jwt');
-    
+
     // 显示登出成功页面
     res.send(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>CardForest Debug - 登出成功</title>
-          <style>
-            body {
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-              max-width: 600px;
-              margin: 40px auto;
-              padding: 20px;
-              line-height: 1.6;
-            }
-            .button {
-              display: inline-block;
-              padding: 8px 16px;
-              background: #24292e;
-              color: white;
-              text-decoration: none;
-              border-radius: 4px;
-              margin-top: 20px;
-            }
-          </style>
-        </head>
-        <body>
           <h1>CardForest Debug - 登出成功</h1>
           <a href="/user/auth/github" class="button">重新登录</a>
-        </body>
-      </html>
     `);
   }
 }

@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
+// NOTE: This page is for backend debug
+
 @Injectable()
 export class AppService {
   getHello(): string {
