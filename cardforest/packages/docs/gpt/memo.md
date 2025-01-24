@@ -7,10 +7,17 @@
 * CardForest采用三种部署模式的同构架构设计：基于Next.js的Web应用支持公开访问与实时协作；Electron桌面应用提供本地存储与系统集成；同构部署模式在共享核心业务逻辑基础上适配不同运行环境。核心代码组织分为core（共享逻辑）、web-client（Next.js应用）、desktop（Electron应用）和server（后端服务）四个包，通过Repository模式隔离数据访问实现Web模式使用远程ArangoDB、Desktop模式使用本地存储的数据层抽象，认证系统在Web模式下使用OAuth+JWT、Desktop模式使用系统级认证，文件系统则分别对应云存储和本地文件系统，使用Jotai通过Provider模式注入环境依赖实现状态管理。
 
 ## 认证与安全
-* 系统实现两套认证流程：后端调试认证使用/user/auth/github路径与/user/auth/auth-callback-backend回调，用于开发调试和后端状态查看；前端应用认证通过前端路由处理OAuth回调供实际用户使用。Next-Auth+Apollo+JWT认证流程中，使用hook管理JWT避免服务端操作cookie，Apollo Client需正确设置auth header并跳过无token请求，登出时必须清理所有相关cookie。Web环境需要CSRF、XSS防护，Desktop环境需要本地权限管理，所有环境都需要加密敏感数据。
+
+* 系统实现两套认证流程：后端调试认证使用/user/auth/github路径与/user/auth/auth-callback-backend回调，用于开发调试和后端状态查看；前端应用认证通过前端路由处理OAuth回调供实际用户使用。Next-Auth+Apollo+JWT认证流程中，使用hook管理JWT避免服务端操作cookie，Apollo Client需正确设置auth header并跳过无token请求，登出时必须清理所有相关cookie。Web环境需要CSRF、XSS防护，Desktop环境需要本地权限管理，所有环境都需要加密敏感数据。GraphQL mutation必须在resolver层使用@UseGuards(AuthGuard)保护，前端组件需要useSession和useJWT双重确保，Apollo Client的authLink必须在SSR环境下安全处理window对象。AuthGuard需要同时支持从Authorization header和cookies中获取JWT，确保在不同场景下都能正确验证用户身份。
+
+## GraphQL Mutation 认证与卡片创建体验
+* GraphQL mutation的认证流程需要确保在resolver层使用@UseGuards(AuthGuard)保护，防止未授权的请求。卡片创建体验需要确保在创建卡片时，正确设置卡片的所有者和权限，避免未授权的用户访问或修改卡片。卡片创建流程需要遵循以下步骤：1. 用户输入卡片标题和内容；2. 系统验证用户的身份和权限；3. 系统创建卡片并设置所有者和权限；4. 系统返回卡片的ID和创建成功的消息。
+
+## GraphQL配置要点
+* Apollo Client配置：URI必须显式包含/graphql路径(如`${baseUrl}/graphql`)；authLink需要在SSR环境下安全处理window对象；请求需要credentials: 'include'确保cookie传递。服务端配置：使用ApolloDriver，需要正确设置typePaths加载schema；playground需要配置request.credentials: 'include'；CORS配置必须允许credentials且指定allowedHeaders包含Authorization。错误处理需要在formatError中统一处理并记录日志。
 
 ## 数据模型与API设计
-* API命名规范：使用my前缀表示当前用户相关查询如myCards而非userCards，使用full后缀表示包含完整关联数据的查询如card/full，需保持命名一致性避免同一概念使用不同名称。模板系统支持从基础模板到特化模板的继承关系，字段定义包含验证规则和UI展示信息，自动处理系统字段。卡片系统包含title/content/body基础字段，使用meta字段存储模板特定数据，通过relations集合管理父子关系。
+* API命名规范：使用my前缀表示当前用户相关查询如myCards而非userCards，使用full后缀表示包含完整关联数据的查询如card/full，需保持命名一致性避免同一概念使用不同名称。模板系统支持从基础模板到特化模板的继承关系，字段定义包含验证规则和UI展示信息，自动处理系统字段。卡片系统包含title/content/body基础字段，使用meta字段存储模板特定数据，通过relations集合管理父子关系。数据关联使用_key而非完整_id路径，GraphQL查询需要通过AQL JOIN获取完整关联对象。
 
 ## 开发重点与优先级
 * 当前以Web端核心功能为重点，包括卡片编辑管理、模板系统、基础UI组件和单用户数据流；基础架构采用Next.js+Radix UI设置，集成GraphQL，使用Jotai状态管理；UI/UX设计关注响应式布局、主题系统、交互设计和可访问性。开发顺序：基础框架搭建、核心UI组件实现、GraphQL集成、卡片编辑器开发、模板系统实现、关系管理添加、用户体验优化。

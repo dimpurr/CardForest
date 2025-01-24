@@ -10,13 +10,23 @@ export class AuthGuard implements CanActivate {
     const ctx = GqlExecutionContext.create(context);
     const { req } = ctx.getContext();
 
+    // Try to get token from Authorization header
+    let token: string | undefined;
     const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return false;
+    if (authHeader) {
+      const [type, headerToken] = authHeader.split(' ');
+      if (type === 'Bearer') {
+        token = headerToken;
+      }
     }
 
-    const [type, token] = authHeader.split(' ');
-    if (type !== 'Bearer') {
+    // If no token in header, try to get from cookies
+    if (!token && req.cookies?.jwt) {
+      token = req.cookies.jwt;
+    }
+
+    if (!token) {
+      console.log('No token found in either Authorization header or cookies');
       return false;
     }
 
@@ -25,6 +35,7 @@ export class AuthGuard implements CanActivate {
       req.user = payload;
       return true;
     } catch (error) {
+      console.error('Token verification failed:', error);
       return false;
     }
   }

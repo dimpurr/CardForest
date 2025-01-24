@@ -31,11 +31,11 @@ export class CardService {
 
   async createCard(
     input: CreateCardDto,
-    userId: string,
+    user: any, // JWT user data
   ): Promise<any> {
     try {
       console.log('Creating card with input:', JSON.stringify(input, null, 2));
-      console.log('User ID:', userId);
+      console.log('User data:', user);
 
       // Validate input fields
       if (!input.template || typeof input.template !== 'string') {
@@ -70,19 +70,30 @@ export class CardService {
       await this.templateService.validateCardData(input.template, cardData);
 
       const now = new Date().toISOString();
-      const card = await cardsCollection.save({
+      const cardDoc = {
         template: input.template,
         title: input.title,
-        content: input.content,
-        body: input.body,
-        meta: input.meta,
-        createdBy: `users/${userId}`,
+        content: input.content || '',
+        body: input.body || '',
+        meta: input.meta || {},
+        createdBy: user.sub,
         createdAt: now,
         updatedAt: now,
-      });
+      };
       
+      const card = await cardsCollection.save(cardDoc);
       console.log('Card created successfully:', JSON.stringify(card, null, 2));
-      return this.getCardById(card._key);
+
+      // Return the complete card with all required fields
+      return {
+        _id: card._id,
+        _key: card._key,
+        _rev: card._rev,
+        ...cardDoc,
+        createdBy: {
+          username: user.username
+        },
+      };
     } catch (error) {
       console.error('Failed to create card:', error);
       throw error;

@@ -33,9 +33,9 @@ export class CardResolver {
   @UseGuards(AuthGuard)
   async createCard(
     @Args('input') input: any,
-    @CurrentUser() userId: string,
+    @CurrentUser() user: any,
   ) {
-    return this.cardService.createCard(input, userId);
+    return this.cardService.createCard(input, user);
   }
 
   @Mutation('updateCard')
