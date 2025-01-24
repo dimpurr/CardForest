@@ -25,19 +25,19 @@ const GET_MY_CARDS = gql`
 
 export default function Home() {
   const { data: session, status: sessionStatus } = useSession();
-  const { jwt, hasJwt, status: jwtStatus } = useJWT();
+  const { jwt, isAuthenticated, status: jwtStatus } = useJWT();
   const [, setCards] = useAtom(cardsAtom);
   const [sortedCards] = useAtom(sortedCardsAtom);
   
   console.log('Auth State:', { 
     session: !!session, 
-    jwt: hasJwt,
+    jwt: !!jwt,
     sessionStatus,
     jwtStatus 
   });
   
   const { loading, error, data } = useQuery(GET_MY_CARDS, {
-    skip: !hasJwt || sessionStatus !== 'authenticated',
+    skip: !isAuthenticated,
     onCompleted: (data) => {
       console.log('Query completed:', data);
       if (data?.myCards) {
@@ -72,16 +72,16 @@ export default function Home() {
   useEffect(() => {
     console.log('Effect triggered:', { 
       hasSession: !!session, 
-      hasJwt,
+      hasJwt: !!jwt,
       sessionStatus,
       jwtStatus
     });
     
-    if (!session || !hasJwt) {
+    if (!session || !jwt) {
       console.log('Clearing cards...');
       setCards([]);
     }
-  }, [session, hasJwt, sessionStatus, jwtStatus, setCards]);
+  }, [session, jwt, sessionStatus, jwtStatus, setCards]);
 
   if (sessionStatus === 'loading' || jwtStatus === 'loading') {
     return (

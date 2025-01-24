@@ -76,7 +76,7 @@ export class CardService {
         content: input.content || '',
         body: input.body || '',
         meta: input.meta || {},
-        createdBy: user.sub,
+        createdBy: `users/${user.sub}`,
         createdAt: now,
         updatedAt: now,
       };
@@ -91,7 +91,11 @@ export class CardService {
         _rev: card._rev,
         ...cardDoc,
         createdBy: {
-          username: user.username
+          _id: `users/${user.sub}`,
+          _key: user.sub,
+          username: user.username,
+          provider: user.provider,
+          providerId: user.providerId
         },
       };
     } catch (error) {
@@ -191,8 +195,8 @@ export class CardService {
                 _key: user._key,
                 _id: user._id,
                 username: user.username,
-                createdAt: user.createdAt,
-                updatedAt: user.updatedAt
+                provider: user.provider,
+                providerId: user.providerId
               }
           )
           RETURN MERGE(
