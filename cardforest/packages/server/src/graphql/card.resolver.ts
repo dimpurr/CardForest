@@ -33,10 +33,14 @@ export class CardResolver {
     @Args('input') input: { title: string; content: string },
     @Context() context,
   ) {
+    const user = context.req.user;
+    if (!user || !user._key) {
+      throw new Error('User not authenticated');
+    }
     return this.cardService.createCard(
       input.title,
       input.content,
-      context.req.user.userId,
+      user._key,
     );
   }
 

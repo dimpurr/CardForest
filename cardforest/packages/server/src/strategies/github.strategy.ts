@@ -3,6 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-github2';
 import { AuthService } from '../services/auth.service';
 import { UserService } from '../services/user.service';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
@@ -18,15 +19,31 @@ export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
     });
   }
 
-  async validate(accessToken, refreshToken, profile, done) {
-    // 基于 GitHub 信息尝试获取或创建用户
-    const username = profile.username;
-    let user = await this.userService.findUserByUsername(username); // 假设这个方法在 UserService 中定义
+  async validate(accessToken: string, refreshToken: string, profile: any, done: Function) {
+    try {
+      const username = profile.username;
+      let user = await this.userService.findUserByUsername(username); // 假设这个方法在 UserService 中定义
 
-    if (!user) {
-      user = await this.userService.createUser(username, 'default-password'); // 应该有更安全的处理方式
+      if (!user) {
+        // 生成一个随机密码
+        const randomPassword = Math.random().toString(36).slice(-8);
+        const hashedPassword = await bcrypt.hash(randomPassword, 10);
+        
+        // 创建新用户
+        user = await this.userService.createUser(username, hashedPassword);
+        
+        if (!user) {
+          throw new Error('Failed to create user');
+        }
+      }
+
+      return done(null, {
+        username: user.username,
+        _key: user._key,
+      });
+    } catch (error) {
+      console.error('GitHub validation error:', error);
+      return done(error, null);
     }
-
-    return done(null, user);
   }
 }

@@ -6,18 +6,20 @@ import * as bcrypt from 'bcrypt';
 export class UserService {
   constructor(private readonly arangoDBService: ArangoDBService) {}
 
-  async createUser(username: string, password: string): Promise<void> {
+  async createUser(username: string, password: string): Promise<any> {
     try {
       const db = this.arangoDBService.getDatabase();
       const collection = db.collection('users');
-      const hashedPassword = await bcrypt.hash(password, 10); // 使用 salt rounds 10
 
-      await collection.save({
+      const user = await collection.save({
         username,
-        hashedPassword,
+        password, // 直接保存传入的 password，因为在 auth.service 中已经做了 hash
       });
+
+      return user;
     } catch (error) {
       console.error('Failed to create user:', error);
+      throw error;
     }
   }
 

@@ -12,13 +12,26 @@ export class CardService {
   ): Promise<any> {
     try {
       const db = this.arangoDBService.getDatabase();
-      const collection = db.collection('cards');
+      const cardsCollection = db.collection('cards');
+      const usersCollection = db.collection('users');
+
+      // 确保用户存在
+      const userRef = `${usersCollection.name}/${userId}`;
+      const user = await db.query(`
+        FOR user IN users
+        FILTER user._key == @userId
+        RETURN user
+      `, { userId }).then(cursor => cursor.next());
+
+      if (!user) {
+        throw new Error('User not found');
+      }
 
       const now = new Date().toISOString();
-      const card = await collection.save({
+      const card = await cardsCollection.save({
         title,
         content,
-        createdBy: userId,
+        createdBy: userRef,  // 使用完整的文档引用
         createdAt: now,
         updatedAt: now,
       });
@@ -40,11 +53,13 @@ export class CardService {
             FOR user IN users
               FILTER user._id == card.createdBy
               RETURN {
-                _id: user._id,
                 username: user.username
               }
           )
-          RETURN MERGE(card, { createdBy: creator })
+          RETURN MERGE(
+            UNSET(card, ['createdBy']),
+            { createdBy: creator }
+          )
       `;
       const cursor = await db.query(query, { cardId });
       const card = await cursor.next();
@@ -67,11 +82,13 @@ export class CardService {
             FOR user IN users
               FILTER user._id == card.createdBy
               RETURN {
-                _id: user._id,
                 username: user.username
               }
           )
-          RETURN MERGE(card, { createdBy: creator })
+          RETURN MERGE(
+            UNSET(card, ['createdBy']),
+            { createdBy: creator }
+          )
       `;
       const cursor = await db.query(query);
       return cursor.all();
@@ -84,20 +101,25 @@ export class CardService {
   async getCardsByUserId(userId: string): Promise<any[]> {
     try {
       const db = this.arangoDBService.getDatabase();
+      const usersCollection = db.collection('users');
+      const userRef = `${usersCollection.name}/${userId}`;
+      
       const query = `
         FOR card IN cards
-          FILTER card.createdBy == @userId
+          FILTER card.createdBy == @userRef
           LET creator = FIRST(
             FOR user IN users
               FILTER user._id == card.createdBy
               RETURN {
-                _id: user._id,
                 username: user.username
               }
           )
-          RETURN MERGE(card, { createdBy: creator })
+          RETURN MERGE(
+            UNSET(card, ['createdBy']),
+            { createdBy: creator }
+          )
       `;
-      const cursor = await db.query(query, { userId });
+      const cursor = await db.query(query, { userRef });
       return cursor.all();
     } catch (error) {
       console.error('Failed to get user cards:', error);
@@ -116,7 +138,7 @@ export class CardService {
       
       // 检查卡片是否存在并属于该用户
       const card = await this.getCardById(cardId);
-      if (card.createdBy._id !== userId) {
+      if (card.createdBy.username !== userId) {
         throw new ForbiddenException('You can only update your own cards');
       }
 
@@ -140,7 +162,7 @@ export class CardService {
       
       // 检查卡片是否存在并属于该用户
       const card = await this.getCardById(cardId);
-      if (card.createdBy._id !== userId) {
+      if (card.createdBy.username !== userId) {
         throw new ForbiddenException('You can only delete your own cards');
       }
 
@@ -161,7 +183,6 @@ export class CardService {
             FOR user IN users
               FILTER user._id == card.createdBy
               RETURN {
-                _id: user._id,
                 username: user.username
               }
           )
@@ -173,7 +194,10 @@ export class CardService {
                 RETURN relatedCard
           )
           RETURN {
-            card: MERGE(card, { createdBy: creator }),
+            card: MERGE(
+              UNSET(card, ['createdBy']),
+              { createdBy: creator }
+            ),
             children: relations
           }
       `;
@@ -194,7 +218,7 @@ export class CardService {
       const fromCard = await this.getCardById(fromCardId);
       const toCard = await this.getCardById(toCardId);
       
-      if (fromCard.createdBy._id !== userId || toCard.createdBy._id !== userId) {
+      if (fromCard.createdBy.username !== userId || toCard.createdBy.username !== userId) {
         throw new ForbiddenException('You can only create relations between your own cards');
       }
 
