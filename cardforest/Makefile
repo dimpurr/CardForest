@@ -30,9 +30,9 @@ help:
 install:
 	@echo "$(GREEN)Installing dependencies...$(NC)"
 	yarn install
-	cd cardforest/packages/server && yarn install
-	cd cardforest/packages/web-client && yarn install
-	cd cardforest/packages/docs && yarn install
+	cd packages/server && yarn install
+	cd packages/web-client && yarn install
+	cd packages/docs && yarn install
 
 # Start all services
 start: db server client
@@ -53,25 +53,25 @@ db:
 # Server
 server:
 	@echo "$(GREEN)Starting backend server...$(NC)"
-	cd cardforest/packages/server && ts-node scripts/generate-typings.ts
-	cd cardforest/packages/server && yarn start:dev
+	cd packages/server && ts-node scripts/generate-typings.ts
+	cd packages/server && yarn start:dev
 
 # Client
 client:
 	@echo "$(GREEN)Starting frontend client...$(NC)"
-	cd cardforest/packages/web-client && yarn dev
+	cd packages/web-client && yarn dev
 
 # Documentation
 docs:
 	@echo "$(GREEN)Starting documentation server...$(NC)"
-	cd cardforest/packages/docs && NODE_OPTIONS=--openssl-legacy-provider yarn dev
+	cd packages/docs && NODE_OPTIONS=--openssl-legacy-provider yarn dev
 
 # Clean
 clean:
 	@echo "$(GREEN)Cleaning project...$(NC)"
 	rm -rf node_modules
-	rm -rf cardforest/packages/server/node_modules
-	rm -rf cardforest/packages/web-client/node_modules
-	rm -rf cardforest/packages/docs/node_modules
-	rm -rf cardforest/packages/server/dist
-	rm -rf cardforest/packages/web-client/.next
+	rm -rf packages/server/node_modules
+	rm -rf packages/web-client/node_modules
+	rm -rf packages/docs/node_modules
+	rm -rf packages/server/dist
+	rm -rf packages/web-client/.next
