@@ -1,41 +1,87 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { ArangoDBService } from './arangodb.service';
+import { TemplateService } from './template.service';
+import { Database } from 'arangojs';
+
+interface CreateCardDto {
+  template: string;
+  title: string;
+  content?: string;
+  body?: string;
+  meta: Record<string, any>;
+}
+
+interface UpdateCardDto {
+  title?: string;
+  content?: string;
+  body?: string;
+  meta?: Record<string, any>;
+}
 
 @Injectable()
 export class CardService {
-  constructor(private readonly arangoDBService: ArangoDBService) {}
+  private db: Database;
+
+  constructor(
+    private readonly arangoDBService: ArangoDBService,
+    private readonly templateService: TemplateService,
+  ) {
+    this.db = this.arangoDBService.getDatabase();
+  }
 
   async createCard(
-    title: string,
-    content: string,
+    input: CreateCardDto,
     userId: string,
   ): Promise<any> {
     try {
-      const db = this.arangoDBService.getDatabase();
-      const cardsCollection = db.collection('cards');
-      const usersCollection = db.collection('users');
+      console.log('Creating card with input:', JSON.stringify(input, null, 2));
+      console.log('User ID:', userId);
 
-      // 确保用户存在
-      const userRef = `${usersCollection.name}/${userId}`;
-      const user = await db.query(`
-        FOR user IN users
-        FILTER user._key == @userId
-        RETURN user
-      `, { userId }).then(cursor => cursor.next());
-
-      if (!user) {
-        throw new Error('User not found');
+      // Validate input fields
+      if (!input.template || typeof input.template !== 'string') {
+        throw new Error('Invalid card data: template is required and must be a string');
       }
+      if (!input.title || typeof input.title !== 'string') {
+        throw new Error('Invalid card data: title is required and must be a string');
+      }
+      if (input.content !== undefined && typeof input.content !== 'string') {
+        throw new Error('Invalid card data: content must be a string');
+      }
+      if (input.body !== undefined && typeof input.body !== 'string') {
+        throw new Error('Invalid card data: body must be a string');
+      }
+      if (!input.meta || typeof input.meta !== 'object') {
+        console.log('Meta is missing or invalid, initializing empty object');
+        input.meta = {};
+      }
+
+      const cardsCollection = this.db.collection('cards');
+
+      // Prepare card data for validation
+      const cardData = {
+        title: input.title,
+        content: input.content,
+        body: input.body,
+        meta: input.meta,
+      };
+      console.log('Card data prepared for validation:', JSON.stringify(cardData, null, 2));
+
+      // Validate against template
+      await this.templateService.validateCardData(input.template, cardData);
 
       const now = new Date().toISOString();
       const card = await cardsCollection.save({
-        title,
-        content,
-        createdBy: userRef,  // 使用完整的文档引用
+        template: input.template,
+        title: input.title,
+        content: input.content,
+        body: input.body,
+        meta: input.meta,
+        createdBy: `users/${userId}`,
         createdAt: now,
         updatedAt: now,
       });
       
+      console.log('Card created successfully:', JSON.stringify(card, null, 2));
       return this.getCardById(card._key);
     } catch (error) {
       console.error('Failed to create card:', error);
@@ -45,10 +91,14 @@ export class CardService {
 
   async getCardById(cardId: string): Promise<any> {
     try {
-      const db = this.arangoDBService.getDatabase();
       const query = `
         FOR card IN cards
           FILTER card._key == @cardId
+          LET template = FIRST(
+            FOR t IN templates
+              FILTER t._key == card.template
+              RETURN t
+          )
           LET creator = FIRST(
             FOR user IN users
               FILTER user._id == card.createdBy
@@ -58,13 +108,16 @@ export class CardService {
           )
           RETURN MERGE(
             UNSET(card, ['createdBy']),
-            { createdBy: creator }
+            { 
+              createdBy: creator,
+              template: template
+            }
           )
       `;
-      const cursor = await db.query(query, { cardId });
+      const cursor = await this.db.query(query, { cardId });
       const card = await cursor.next();
       if (!card) {
-        throw new NotFoundException(`Card with ID ${cardId} not found`);
+        throw new NotFoundException('Card not found');
       }
       return card;
     } catch (error) {
@@ -75,9 +128,13 @@ export class CardService {
 
   async getCards(): Promise<any[]> {
     try {
-      const db = this.arangoDBService.getDatabase();
       const query = `
         FOR card IN cards
+          LET template = FIRST(
+            FOR t IN templates
+              FILTER t._key == card.template
+              RETURN t
+          )
           LET creator = FIRST(
             FOR user IN users
               FILTER user._id == card.createdBy
@@ -87,10 +144,13 @@ export class CardService {
           )
           RETURN MERGE(
             UNSET(card, ['createdBy']),
-            { createdBy: creator }
+            { 
+              createdBy: creator,
+              template: template
+            }
           )
       `;
-      const cursor = await db.query(query);
+      const cursor = await this.db.query(query);
       return cursor.all();
     } catch (error) {
       console.error('Failed to get cards:', error);
@@ -100,13 +160,17 @@ export class CardService {
 
   async getCardsByUserId(userId: string): Promise<any[]> {
     try {
-      const db = this.arangoDBService.getDatabase();
-      const usersCollection = db.collection('users');
+      const usersCollection = this.db.collection('users');
       const userRef = `${usersCollection.name}/${userId}`;
       
       const query = `
         FOR card IN cards
           FILTER card.createdBy == @userRef
+          LET template = FIRST(
+            FOR t IN templates
+              FILTER t._key == card.template
+              RETURN t
+          )
           LET creator = FIRST(
             FOR user IN users
               FILTER user._id == card.createdBy
@@ -116,10 +180,13 @@ export class CardService {
           )
           RETURN MERGE(
             UNSET(card, ['createdBy']),
-            { createdBy: creator }
+            { 
+              createdBy: creator,
+              template: template
+            }
           )
       `;
-      const cursor = await db.query(query, { userRef });
+      const cursor = await this.db.query(query, { userRef });
       return cursor.all();
     } catch (error) {
       console.error('Failed to get user cards:', error);
@@ -130,16 +197,36 @@ export class CardService {
   async updateCard(
     cardId: string,
     userId: string,
-    updates: { title?: string; content?: string },
+    updates: UpdateCardDto,
   ): Promise<any> {
     try {
-      const db = this.arangoDBService.getDatabase();
-      const collection = db.collection('cards');
+      const collection = this.db.collection('cards');
       
-      // 检查卡片是否存在并属于该用户
+      // 获取卡片和模板信息
       const card = await this.getCardById(cardId);
       if (card.createdBy.username !== userId) {
         throw new ForbiddenException('You can only update your own cards');
+      }
+
+      // 验证更新数据
+      if (updates.meta) {
+        console.log('Card data before validation:', {
+          template: card.template._key,
+          title: card.title,
+          content: card.content,
+          body: card.body,
+          meta: {
+            ...card.meta,
+            ...updates.meta,
+          },
+        });
+        await this.templateService.validateCardData(card.template._key, {
+          ...card,
+          meta: {
+            ...card.meta,
+            ...updates.meta,
+          },
+        });
       }
 
       const updateData = {
@@ -157,8 +244,7 @@ export class CardService {
 
   async deleteCard(cardId: string, userId: string): Promise<boolean> {
     try {
-      const db = this.arangoDBService.getDatabase();
-      const collection = db.collection('cards');
+      const collection = this.db.collection('cards');
       
       // 检查卡片是否存在并属于该用户
       const card = await this.getCardById(cardId);
@@ -176,9 +262,13 @@ export class CardService {
 
   async getCardsWithRelations(): Promise<any[]> {
     try {
-      const db = this.arangoDBService.getDatabase();
       const query = `
         FOR card IN cards
+          LET template = FIRST(
+            FOR t IN templates
+              FILTER t._key == card.template
+              RETURN t
+          )
           LET creator = FIRST(
             FOR user IN users
               FILTER user._id == card.createdBy
@@ -196,12 +286,15 @@ export class CardService {
           RETURN {
             card: MERGE(
               UNSET(card, ['createdBy']),
-              { createdBy: creator }
+              { 
+                createdBy: creator,
+                template: template
+              }
             ),
             children: relations
           }
       `;
-      const cursor = await db.query(query);
+      const cursor = await this.db.query(query);
       return cursor.all();
     } catch (error) {
       console.error('Failed to get cards with relations:', error);
@@ -211,23 +304,22 @@ export class CardService {
 
   async createRelation(fromCardId: string, toCardId: string, userId: string): Promise<void> {
     try {
-      const db = this.arangoDBService.getDatabase();
-      const edgeCollection = db.collection('CardRelations');
-
-      // 检查两张卡片是否都属于该用户
       const fromCard = await this.getCardById(fromCardId);
       const toCard = await this.getCardById(toCardId);
-      
-      if (fromCard.createdBy.username !== userId || toCard.createdBy.username !== userId) {
-        throw new ForbiddenException('You can only create relations between your own cards');
+
+      if (fromCard.createdBy.username !== userId) {
+        throw new ForbiddenException('You can only create relations from your own cards');
       }
 
-      await edgeCollection.save({
+      const collection = this.db.collection('CardRelations');
+      await collection.save({
         _from: `cards/${fromCardId}`,
         _to: `cards/${toCardId}`,
+        createdAt: new Date().toISOString(),
+        createdBy: `users/${userId}`,
       });
     } catch (error) {
-      console.error('Failed to create card relation:', error);
+      console.error('Failed to create relation:', error);
       throw error;
     }
   }

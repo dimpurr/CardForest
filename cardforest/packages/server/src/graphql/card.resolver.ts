@@ -1,69 +1,70 @@
-import { Resolver, Query, Mutation, Args, Context } from '@nestjs/graphql';
-import { CardService } from '../services/card.service';
+import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { CardService } from '../services/card.service';
+import { AuthGuard } from '../guards/auth.guard';
+import { CurrentUser } from '../decorators/current-user.decorator';
 
 @Resolver('Card')
 export class CardResolver {
   constructor(private readonly cardService: CardService) {}
 
-  @Query()
-  async cards() {
-    return this.cardService.getCards();
-  }
-
-  @Query()
-  async card(@Args('id') id: string) {
+  @Query('card')
+  async getCard(@Args('id') id: string) {
     return this.cardService.getCardById(id);
   }
 
-  @Query()
-  @UseGuards(JwtAuthGuard)
-  async myCards(@Context() context) {
-    const user = context.req.user;
-    if (!user || !user._key) {
-      throw new Error('User not authenticated');
-    }
-    return this.cardService.getCardsByUserId(user._key);
+  @Query('cards')
+  async getCards() {
+    return this.cardService.getCards();
   }
 
-  @Mutation()
-  @UseGuards(JwtAuthGuard)
+  @Query('userCards')
+  @UseGuards(AuthGuard)
+  async getUserCards(@CurrentUser() userId: string) {
+    return this.cardService.getCardsByUserId(userId);
+  }
+
+  @Query('cardsWithRelations')
+  async getCardsWithRelations() {
+    return this.cardService.getCardsWithRelations();
+  }
+
+  @Mutation('createCard')
+  @UseGuards(AuthGuard)
   async createCard(
-    @Args('input') input: { title: string; content: string },
-    @Context() context,
+    @Args('input') input: any,
+    @CurrentUser() userId: string,
   ) {
-    const user = context.req.user;
-    if (!user || !user._key) {
-      throw new Error('User not authenticated');
-    }
-    return this.cardService.createCard(
-      input.title,
-      input.content,
-      user._key,
-    );
+    return this.cardService.createCard(input, userId);
   }
 
-  @Mutation()
-  @UseGuards(JwtAuthGuard)
+  @Mutation('updateCard')
+  @UseGuards(AuthGuard)
   async updateCard(
     @Args('id') id: string,
-    @Args('input') input: { title?: string; content?: string },
-    @Context() context,
+    @Args('input') input: any,
+    @CurrentUser() userId: string,
   ) {
-    return this.cardService.updateCard(
-      id,
-      context.req.user.userId,
-      input,
-    );
+    return this.cardService.updateCard(id, userId, input);
   }
 
-  @Mutation()
-  @UseGuards(JwtAuthGuard)
+  @Mutation('deleteCard')
+  @UseGuards(AuthGuard)
   async deleteCard(
     @Args('id') id: string,
-    @Context() context,
+    @CurrentUser() userId: string,
   ) {
-    return this.cardService.deleteCard(id, context.req.user.userId);
+    return this.cardService.deleteCard(id, userId);
+  }
+
+  @Mutation('createRelation')
+  @UseGuards(AuthGuard)
+  async createRelation(
+    @Args('fromCardId') fromCardId: string,
+    @Args('toCardId') toCardId: string,
+    @CurrentUser() userId: string,
+  ) {
+    await this.cardService.createRelation(fromCardId, toCardId, userId);
+    return true;
   }
 }

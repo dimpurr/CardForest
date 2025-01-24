@@ -5,16 +5,22 @@ import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { join } from 'path';
 import { AppController } from '../controllers/app.controller';
 import { AppService } from '../services/app.service';
-// import { ArangoDBService } from './services/arangodb.service';
+import { ArangoDBService } from '../services/arangodb.service';
 import { InstallService } from '../services/install.service';
 import { CardService } from '../services/card.service';
 import { UserService } from '../services/user.service';
+import { AuthService } from '../services/auth.service';
+import { TemplateService } from '../services/template.service';
 import { CardResolver } from '../graphql/card.resolver';
 import { UserResolver } from '../graphql/user.resolver';
+import { TemplateResolver } from '../graphql/template.resolver';
+import { AuthResolver } from '../graphql/auth.resolver';
 import { DatabaseModule } from './database.module';
 import { UserModule } from './user.module';
 import { AuthModule } from './auth.module';
 import { CardController } from 'src/controllers/card.controller';
+import { AuthController } from '../controllers/auth.controller';
+import { InstallController } from '../controllers/install.controller';
 
 @Module({
   imports: [
@@ -25,7 +31,7 @@ import { CardController } from 'src/controllers/card.controller';
       driver: ApolloDriver,
       typePaths: ['./**/*.graphql'],
       definitions: {
-        path: join(process.cwd(), 'src/graphql.ts'),
+        path: join(process.cwd(), 'src/graphql/graphql.ts'),
       },
       playground: {
         settings: {
@@ -76,15 +82,19 @@ import { CardController } from 'src/controllers/card.controller';
     DatabaseModule,
     AuthModule,
   ],
-  controllers: [AppController, CardController],
+  controllers: [AppController, CardController, AuthController, InstallController],
   providers: [
     AppService,
-    // ArangoDBService,
+    ArangoDBService,
     InstallService,
     CardService,
     UserService,
+    AuthService,
+    TemplateService,
     CardResolver,
     UserResolver,
+    TemplateResolver,
+    AuthResolver,
   ],
 })
 export class AppModule {}

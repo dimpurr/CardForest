@@ -1,38 +1,101 @@
-type Query {
-  users: [User]
-  cards: [Card]
-  myCards: [Card]
-  card(id: ID!): Card
-}
-
-type Mutation {
-  createCard(input: CreateCardInput!): Card
-  updateCard(id: ID!, input: UpdateCardInput!): Card
-  deleteCard(id: ID!): Boolean
-}
+scalar Date
+scalar JSON
 
 type User {
+  _key: ID!
   _id: ID!
   username: String!
-  password: String!
-  cards: [Card]
+  createdAt: Date!
+  updatedAt: Date!
+}
+
+type Template {
+  _key: ID!
+  _id: ID!
+  name: String!
+  fields: JSON!
+  parent: Template
+  createdAt: Date!
+  updatedAt: Date!
+  createdBy: User
 }
 
 type Card {
+  _key: ID!
   _id: ID!
+  template: Template!
   title: String!
-  content: String!
+  content: String
+  body: String
+  meta: JSON!
+  createdAt: Date!
+  updatedAt: Date!
   createdBy: User!
-  createdAt: String!
-  updatedAt: String
+}
+
+type CardWithRelations {
+  card: Card!
+  children: [Card!]!
+}
+
+type Query {
+  # 用户相关
+  me: User
+  user(id: ID!): User
+  users: [User!]!
+
+  # 卡片相关
+  card(id: ID!): Card
+  cards: [Card!]!
+  userCards: [Card!]!
+  cardsWithRelations: [CardWithRelations!]!
+
+  # 模板相关
+  template(id: ID!): Template
+  templates: [Template!]!
+  userTemplates: [Template!]!
 }
 
 input CreateCardInput {
+  template: ID!
   title: String!
-  content: String!
+  content: String
+  body: String
+  meta: JSON!
 }
 
 input UpdateCardInput {
   title: String
   content: String
+  body: String
+  meta: JSON
+}
+
+input CreateTemplateInput {
+  name: String!
+  fields: JSON!
+  parent: ID
+}
+
+input UpdateTemplateInput {
+  name: String
+  fields: JSON
+  parent: ID
+}
+
+type Mutation {
+  # 用户相关
+  register(username: String!, password: String!): User!
+  login(username: String!, password: String!): String!
+
+  # 卡片相关
+  createCard(input: CreateCardInput!): Card!
+  updateCard(id: ID!, input: UpdateCardInput!): Card!
+  deleteCard(id: ID!): Boolean!
+  createRelation(fromCardId: ID!, toCardId: ID!): Boolean!
+
+  # 模板相关
+  createTemplate(input: CreateTemplateInput!): Template!
+  updateTemplate(id: ID!, input: UpdateTemplateInput!): Template!
+  deleteTemplate(id: ID!): Boolean!
 }

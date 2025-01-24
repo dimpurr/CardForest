@@ -6,6 +6,7 @@ import { AuthService } from '../services/auth.service';
 import { AuthController } from '../controllers/auth.controller';
 import { JwtStrategy } from '../strategies/jwt.strategy';
 import { UserModule } from './user.module';
+import { ArangoDBService } from '../services/arangodb.service';
 
 @Module({
   imports: [
@@ -26,7 +27,7 @@ import { UserModule } from './user.module';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [AuthService],
+  providers: [AuthService, JwtStrategy, ArangoDBService],
+  exports: [AuthService, JwtModule],
 })
 export class AuthModule {}
