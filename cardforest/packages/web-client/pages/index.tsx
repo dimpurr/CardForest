@@ -24,15 +24,20 @@ const GET_MY_CARDS = gql`
 `;
 
 export default function Home() {
-  const { data: session, status } = useSession();
-  const jwt = useJWT();
+  const { data: session, status: sessionStatus } = useSession();
+  const { jwt, hasJwt, status: jwtStatus } = useJWT();
   const [, setCards] = useAtom(cardsAtom);
   const [sortedCards] = useAtom(sortedCardsAtom);
   
-  console.log('Auth State:', { session: !!session, jwt: !!jwt, status });
+  console.log('Auth State:', { 
+    session: !!session, 
+    jwt: hasJwt,
+    sessionStatus,
+    jwtStatus 
+  });
   
-  const { loading, error, data, refetch } = useQuery(GET_MY_CARDS, {
-    skip: !jwt,
+  const { loading, error, data } = useQuery(GET_MY_CARDS, {
+    skip: !hasJwt || sessionStatus !== 'authenticated',
     onCompleted: (data) => {
       console.log('Query completed:', data);
       if (data?.myCards) {
@@ -41,9 +46,7 @@ export default function Home() {
     },
     onError: (error) => {
       console.error('Query error:', error);
-    },
-    // 确保每次登录后都重新获取数据
-    fetchPolicy: 'cache-and-network',
+    }
   });
 
   console.log('Query State:', { loading, error: error?.message, data });
@@ -52,9 +55,11 @@ export default function Home() {
     // 清除 cookie
     document.cookie = 'jwt=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
     document.cookie = 'next-auth.session-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    // 清除卡片
+    setCards([]);
     // 调用 next-auth 的登出
     await signOut();
-  }, []);
+  }, [setCards]);
 
   const handleSignIn = useCallback(() => {
     signIn('github', {
@@ -63,19 +68,22 @@ export default function Home() {
     });
   }, []);
 
-  // 当 session 或 jwt 变化时，重新获取卡片
+  // 当 session 或 jwt 变化时，清除卡片
   useEffect(() => {
-    console.log('Effect triggered:', { hasSession: !!session, hasJwt: !!jwt });
-    if (session && jwt) {
-      console.log('Refetching cards...');
-      refetch();
-    } else {
+    console.log('Effect triggered:', { 
+      hasSession: !!session, 
+      hasJwt,
+      sessionStatus,
+      jwtStatus
+    });
+    
+    if (!session || !hasJwt) {
       console.log('Clearing cards...');
       setCards([]);
     }
-  }, [session, jwt, refetch, setCards]);
+  }, [session, hasJwt, sessionStatus, jwtStatus, setCards]);
 
-  if (status === 'loading') {
+  if (sessionStatus === 'loading' || jwtStatus === 'loading') {
     return (
       <div className="min-h-screen p-6">
         <Alert>
@@ -147,7 +155,7 @@ export default function Home() {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold">My Cards</h2>
-              <CreateCard onCardCreated={refetch} />
+              <CreateCard />
             </div>
             {loading ? (
               <Alert>

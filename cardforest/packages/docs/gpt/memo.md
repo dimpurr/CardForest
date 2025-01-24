@@ -11,7 +11,7 @@
 
 ## 认证与安全
 
-* 系统实现两套认证流程：后端调试认证使用/user/auth/github路径与/user/auth/auth-callback-backend回调，用于开发调试和后端状态查看；前端应用认证通过前端路由处理OAuth回调供实际用户使用。Next-Auth+Apollo+JWT认证流程中，使用hook管理JWT避免服务端操作cookie。NextAuth配置中jwt回调获取并存储JWT，session回调传递给前端，不要在jwt回调中读取cookie；CORS配置必须同时设置credentials:true和exposedHeaders:['Set-Cookie']允许跨域cookie，origin需精确匹配前端域名；Apollo Client需设置credentials:'include'确保发送cookie。Web环境需要CSRF、XSS防护，Desktop环境需要本地权限管理，所有环境都需要加密敏感数据。GraphQL mutation必须在resolver层使用@UseGuards(AuthGuard)保护，前端组件需要useSession和useJWT双重确保，Apollo Client的authLink必须在SSR环境下安全处理window对象。AuthGuard需要同时支持从Authorization header和cookies中获取JWT，确保在不同场景下都能正确验证用户身份。
+* 系统实现两套认证流程：后端调试认证使用/user/auth/github路径与/user/auth/auth-callback-backend回调，用于开发调试和后端状态查看；前端应用认证通过前端路由处理OAuth回调供实际用户使用。Auth.js(NextAuth升级版)+Apollo+JWT认证流程中，使用hook管理JWT避免服务端操作cookie。Auth.js配置中jwt回调获取并存储backendJwt，session回调传递给前端，不要在jwt回调中读取cookie；CORS配置必须同时设置credentials:true和exposedHeaders:['Set-Cookie']允许跨域cookie，origin需精确匹配前端域名；Apollo Client需设置credentials:'include'确保发送cookie。Web环境需要CSRF、XSS防护，Desktop环境需要本地权限管理，所有环境都需要加密敏感数据。GraphQL mutation必须在resolver层使用@UseGuards(AuthGuard)保护，前端组件需要useSession和useJWT双重确保，Apollo Client的authLink必须在SSR环境下安全处理window对象。AuthGuard需要同时支持从Authorization header和cookies中获取JWT，确保在不同场景下都能正确验证用户身份。使用Auth.js时避免使用Edge Runtime以防止JWT处理问题，确保在jwt回调中正确处理OAuth provider返回的profile信息。
 
 ## GraphQL Mutation 认证与卡片创建体验
 * GraphQL mutation的认证流程需要确保在resolver层使用@UseGuards(AuthGuard)保护，防止未授权的请求。卡片创建体验需要确保在创建卡片时，正确设置卡片的所有者和权限，避免未授权的用户访问或修改卡片。卡片创建流程需要遵循以下步骤：1. 用户输入卡片标题和内容；2. 系统验证用户的身份和权限；3. 系统创建卡片并设置所有者和权限；4. 系统返回卡片的ID和创建成功的消息。
@@ -37,6 +37,6 @@
 * 暂不考虑：本地文件系统集成与云存储方案、附件预览管理、多用户权限系统、协作功能、数据隔离策略、实时同步机制、多设备同步、离线功能、用户数据迁移。特别注意：路径处理需区分Web的URL路径和Desktop的文件系统路径确保跨平台兼容；API调用在Web使用REST/GraphQL、Desktop使用IPC通信需要统一抽象层；数据同步Web端实时、Desktop端定期且需处理冲突；GraphQL相关查询需使用AuthGuard保护并通过@CurrentUser()获取用户信息，注意ArangoDB查询中绑定参数必须显式提供，使用aql标签字符串处理复杂查询，关注关系查询性能影响。
 
 ## 调试与错误处理
-* 后端调试页面（如/install、/card/full）保持简单HTML风格仅用于开发调试和状态查看。环境检测通过typeof window和process.type判断，条件导入根据环境选择具体实现。认证调试要点：检查Network中/api/auth/session返回和GraphQL请求Authorization header；检查Cookie中jwt和next-auth.session-token存在性；常见问题包括循环登录（检查JWT同步和cookie设置）、401/403（检查Authorization header格式）、Session数据不完整（检查next-auth callbacks）。JWT处理关键：useJWT必须同时处理session和cookie来源保持同步；cookie设置需要{secure:仅生产环境,sameSite:'lax',path:'/',expires:1}；Apollo Client的authLink中用js-cookie替代document.cookie解析。
+* 后端调试页面（如/install、/card/full）保持简单HTML风格仅用于开发调试和状态查看。环境检测通过typeof window和process.type判断，条件导入根据环境选择具体实现。认证调试要点：检查Network中/api/auth/session返回和GraphQL请求Authorization header；检查Cookie中jwt和next-auth.session-token存在性；常见问题包括循环登录（检查JWT同步和cookie设置）、401/403（检查Authorization header格式）、Session数据不完整（检查next-auth callbacks）。JWT处理关键：useJWT必须同时处理session和cookie来源保持同步；cookie设置需要{secure:仅生产环境,sameSite:'lax',path:'/',expires:1}；Apollo Client的authLink中用js-cookie替代document.cookie解析。Card.createdBy非空但返回null说明数据库中user关联丢失，检查Card创建时的user绑定和GraphQL resolver中的关系查询。Apollo Client无限循环原因：fetchPolicy设为cache-and-network导致，改为network-only；userId处理需要从user对象中提取sub字段；ArangoDB查询中userRef格式必须为users/[userId]。
 
 ！！NOTE：绝对不要删掉或者修改这一行：你需要少用列表换行多用信息非常紧凑的方式记录！！保持这个是最后一行！！

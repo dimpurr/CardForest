@@ -1,10 +1,13 @@
 import {
   Controller,
   Get,
+  Post,
   UseGuards,
   Req,
   Res,
+  Body,
   UnauthorizedException,
+  Logger,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Request, Response } from 'express';
@@ -16,6 +19,8 @@ import { JwtService } from '@nestjs/jwt';
 // NOTE: 这是给后端自己 debug 用的后端登录流程，别跳到前端
 @Controller('user/auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(
     private authService: AuthService,
     private jwtService: JwtService, // 注入 JwtService 以解码 token
@@ -26,25 +31,38 @@ export class AuthController {
     // Passport 自动处理 GitHub 登录流程
   }
 
-  @Get('github/callback')
-  @UseGuards(AuthGuard('github'))
-  async githubAuthRedirect(@Req() req: Request, @Res() res: Response) {
-    if (!req.user) {
-      throw new UnauthorizedException();
-    }
-
-    // 生成 JWT token
-    const access_token = await this.authService.validateOAuthLogin(req.user);
-
-    // 设置 JWT cookie
-    res.cookie('jwt', access_token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+  @Post('github/callback')
+  async githubAuthCallback(@Body() data: any) {
+    this.logger.log('Received OAuth callback:', {
+      provider: data.provider,
+      hasAccessToken: !!data.access_token,
+      profile: data.profile,
     });
 
-    // 重定向到成功页面
-    res.redirect('/user/auth/auth-callback-backend');
+    if (!data.access_token || !data.profile) {
+      throw new UnauthorizedException('Invalid OAuth data');
+    }
+
+    try {
+      // 使用 access_token 和 profile 生成 JWT
+      // Auth.js 的 GitHub provider 使用 sub 作为用户 ID
+      const jwt = await this.authService.validateOAuthLogin({
+        provider: data.provider,
+        providerId: data.profile.sub || data.profile.id,
+        profile: data.profile,
+        accessToken: data.access_token,
+      });
+
+      this.logger.log('Generated JWT:', { 
+        hasJwt: !!jwt,
+        jwtPreview: jwt ? `${jwt.slice(0, 10)}...` : null
+      });
+
+      return { jwt };
+    } catch (error) {
+      this.logger.error('JWT generation failed:', error);
+      throw new UnauthorizedException('Failed to generate JWT');
+    }
   }
 
   // NOTE: 这是后端 debug 自己的登录成功界面

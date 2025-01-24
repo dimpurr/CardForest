@@ -6,7 +6,7 @@ CardForest 采用现代的全栈架构：
 
 - **前端**：Next.js + Apollo Client + Chakra UI
 - **后端**：NestJS + GraphQL + ArangoDB
-- **认证**：NextAuth.js + JWT
+- **认证**：Auth.js + JWT
 
 ## 目录结构
 

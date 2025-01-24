@@ -19,12 +19,15 @@ CardForest is a modern knowledge management application that helps you organize 
   - Jotai (State management)
   - TipTap (Rich text editor)
   - React Flow (Relationship visualization)
+  - Auth.js (Authentication)
+  - Apollo Client (GraphQL client)
 
 - **Backend**:
   - Node.js
   - GraphQL
   - MongoDB
   - TypeScript
+  - NestJS (API framework)
 
 ## Initial Setup
 

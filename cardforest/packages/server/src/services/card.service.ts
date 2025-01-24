@@ -178,7 +178,7 @@ export class CardService {
       
       const query = `
         FOR card IN cards
-          FILTER card.createdBy == @userRef
+          FILTER card.createdBy == null || card.createdBy == @userRef
           LET template = FIRST(
             FOR t IN templates
               FILTER t._key == card.template
@@ -195,7 +195,6 @@ export class CardService {
                 updatedAt: user.updatedAt
               }
           )
-          FILTER creator != null
           RETURN MERGE(
             UNSET(card, ['createdBy']),
             { 
@@ -204,13 +203,15 @@ export class CardService {
             }
           )
       `;
+      
+      console.log('Running query with params:', { userRef });
       const cursor = await this.db.query(query, { userRef });
       const results = await cursor.all();
       console.log('Found cards:', results.length);
       return results;
     } catch (error) {
       console.error('Failed to get user cards:', error);
-      throw error; // Let GraphQL handle the error
+      throw error;
     }
   }
 

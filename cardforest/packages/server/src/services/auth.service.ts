@@ -46,30 +46,66 @@ export class AuthService {
     };
   }
 
-  async validateOAuthLogin(profile): Promise<string> {
-    if (!profile || !profile.username) {
-      throw new UnauthorizedException('Invalid GitHub profile: missing username');
+  async validateOAuthLogin(data: {
+    provider: string;
+    providerId: string;
+    profile: {
+      sub?: string;  // Auth.js GitHub provider 使用 sub
+      id?: string;   // 向后兼容
+      login: string;
+      email: string;
+    };
+    accessToken: string;
+  }): Promise<string> {
+    const { provider, providerId, profile, accessToken } = data;
+    
+    if (!profile || !profile.login) {
+      throw new UnauthorizedException('Invalid OAuth profile');
     }
 
-    let user = await this.arangoDBService.getDatabase().query(`
-      FOR user IN users
-        FILTER user.username == @username
-        RETURN user
-    `, { username: profile.username }).then(cursor => cursor.next());
+    try {
+      // 查找或创建用户
+      const user = await this.arangoDBService.getDatabase().query(`
+        UPSERT { provider: @provider, providerId: @providerId }
+        INSERT { 
+          provider: @provider,
+          providerId: @providerId,
+          username: @username,
+          email: @email,
+          createdAt: DATE_ISO8601(DATE_NOW()),
+          updatedAt: DATE_ISO8601(DATE_NOW())
+        }
+        UPDATE { 
+          username: @username,
+          email: @email,
+          updatedAt: DATE_ISO8601(DATE_NOW())
+        }
+        IN users
+        RETURN NEW
+      `, {
+        provider,
+        providerId: providerId || profile.sub || profile.id, // 优先使用传入的 providerId，然后是 sub，最后是 id
+        username: profile.login,
+        email: profile.email
+      }).then(cursor => cursor.next());
 
-    if (!user) {
-      const randomPassword = Math.random().toString(36).slice(-8);
-      const hashedPassword = await bcrypt.hash(randomPassword, 10);
-      user = await this.arangoDBService.getDatabase().collection('users').save({
-        username: profile.username,
-        password: hashedPassword,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
+      if (!user) {
+        throw new Error('Failed to create/update user');
+      }
+
+      // 生成 JWT
+      const payload = {
+        sub: user._key,
+        provider,
+        providerId,
+        username: profile.login,
+      };
+
+      return this.generateToken(payload);
+    } catch (error) {
+      console.error('OAuth validation error:', error);
+      throw new UnauthorizedException('Failed to validate OAuth login');
     }
-
-    const payload = { username: user.username, sub: user._key };
-    return this.generateToken(payload);
   }
 
   async validateUserByUsername(username: string): Promise<any> {
