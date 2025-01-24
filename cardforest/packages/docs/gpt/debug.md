@@ -82,6 +82,107 @@
    - [ ] 重新尝试登录流程
    - [ ] 检查 JWT 生成和传递是否正常
 
+### 最终解决方案 (2025-01-24 21:03)
+
+#### 问题总结
+1. Auth.js 集成问题：
+   - JWT 未正确传递到前端 session
+   - Apollo Client 无法获取 JWT
+   - GraphQL 请求缺少认证头
+
+#### 解决步骤
+
+1. [...nextauth].ts 更新：
+   ```typescript
+   // JWT 回调优化
+   async jwt({ token, account, profile, trigger }) {
+     if (account?.access_token || trigger === 'signIn') {
+       const data = await fetchBackendJWT({
+         access_token: account?.access_token,
+         provider: 'github',
+         providerId: profile.id || profile.sub,
+         profile: {
+           sub: profile.sub,
+           id: profile.id,
+           login: profile.login,
+           email: profile.email
+         }
+       })
+       token.backendJwt = data.jwt
+     }
+     return token
+   }
+
+   // Session 回调确保 JWT 传递
+   async session({ session, token }) {
+     if (token.backendJwt) {
+       session.backendJwt = token.backendJwt
+     }
+     return session
+   }
+   ```
+
+2. Apollo Client 配置优化：
+   ```typescript
+   const authLink = setContext(async (operation, { headers }) => {
+     const session = await getSession()
+     const jwt = session?.backendJwt
+     
+     return {
+       headers: {
+         ...headers,
+         authorization: jwt ? `Bearer ${jwt}` : '',
+         'Content-Type': 'application/json'
+       }
+     }
+   })
+   ```
+
+3. useJWT Hook 改进：
+   ```typescript
+   export const useJWT = () => {
+     const { data: session, status } = useSession()
+     const [jwt, setJwt] = useState<string | null>(null)
+
+     useEffect(() => {
+       if (session?.backendJwt) {
+         setJwt(session.backendJwt)
+       }
+     }, [session, status])
+
+     return {
+       jwt,
+       isAuthenticated: status === 'authenticated' && !!jwt,
+       status,
+       session
+     }
+   }
+   ```
+
+#### 验证结果
+1. 后端成功生成 JWT：
+   ```
+   [AuthController] JWT generated successfully
+   ```
+
+2. Apollo Client 正确获取 JWT：
+   ```
+   Apollo authLink JWT: {hasJwt: true, jwtPreview: 'eyJhbGciOi...'}
+   Apollo authLink final headers: {authorization: 'present'}
+   ```
+
+3. 前端状态正确：
+   ```
+   Auth State: {session: true, sessionStatus: 'authenticated'}
+   useJWT hook: {hasSession: true, backendJwt: 'present'}
+   ```
+
+#### 关键经验
+1. Auth.js 的 JWT 和 Session 回调必须正确配置才能传递自定义数据
+2. Apollo Client 的 authLink 应该异步获取最新的 session 数据
+3. useJWT hook 需要响应 session 状态变化
+4. 完整的日志记录对调试至关重要
+
 ### 代码变更
 
 1. auth.service.ts:
