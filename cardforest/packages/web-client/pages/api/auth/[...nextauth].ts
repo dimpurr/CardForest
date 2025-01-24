@@ -1,6 +1,28 @@
 import NextAuth, { NextAuthOptions } from 'next-auth';
 import GithubProvider from 'next-auth/providers/github';
 
+async function fetchJWT(accessToken: string) {
+  try {
+    const response = await fetch('http://localhost:3030/user/auth/github/callback', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ access_token: accessToken }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch JWT');
+    }
+
+    const data = await response.json();
+    return data.jwt;
+  } catch (error) {
+    console.error('Error fetching JWT:', error);
+    return null;
+  }
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     GithubProvider({
@@ -12,11 +34,15 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, account, user, profile }) {
       // 初始登录时
       if (account && user) {
+        // 获取 JWT
+        const jwt = await fetchJWT(account.access_token as string);
+        
         return {
           ...token,
           accessToken: account.access_token,
           userId: user.id,
           username: profile?.login,
+          jwt,
         };
       }
       return token;
@@ -28,6 +54,7 @@ export const authOptions: NextAuthOptions = {
         accessToken: token.accessToken,
         userId: token.userId,
         username: token.username,
+        jwt: token.jwt,
       };
     },
   },

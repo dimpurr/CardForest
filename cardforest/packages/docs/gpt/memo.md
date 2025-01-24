@@ -1,5 +1,7 @@
 # CardForest 开发备忘录
 
+！！NOTE 绝对不要删掉或者修改这一行：这是 memo.md ，是用来在大量修改中记录易错易混点防止丢失上下文反复导致相同 bug 或者忘记之前设计的，你需要少用列表换行多用信息非常紧凑的方式记录，只记录我们调试过程中产生的必要信息不要空话套话general的 ！！！
+
 ## API 命名规范
 
 ### GraphQL 查询命名
@@ -208,3 +210,68 @@ packages/
 - ArangoDB 查询中的绑定参数必须显式提供
 - 使用 aql 标签字符串处理复杂查询
 - 关系查询需要考虑性能影响
+
+## Auth Notes
+
+### Next-Auth + Apollo + JWT 认证流程
+
+```mermaid
+graph LR
+    A[Next-Auth] -->|1.GitHub登录| B[GitHub OAuth]
+    B -->|2.access_token| A
+    A -->|3.access_token| C[后端]
+    C -->|4.JWT| A
+    A -->|5.JWT| D[Apollo Client]
+    D -->|Authorization: Bearer JWT| E[GraphQL API]
+```
+
+### 关键点与易错处
+
+#### 1. JWT 管理
+- ✅ 使用 hook 管理 JWT，避免服务端操作 cookie
+- ❌ 避免在 next-auth callbacks 中直接操作 cookie
+```ts
+// Good: useJWT hook
+useEffect(() => session?.jwt && setCookie('jwt', session.jwt), [session?.jwt]);
+// Bad: next-auth callback
+async session() { document.cookie = `jwt=${token.jwt}`; } // 服务端报错
+```
+
+#### 2. Apollo Client 配置
+- ✅ 正确设置 auth header
+```ts
+headers: { 'Authorization': `Bearer ${token}` }  // ✓
+headers: { authorization: token }                // ✗ 格式错误
+headers: { authorization: '' }                   // ✗ 空token也发送
+```
+
+#### 3. 请求时序
+- ✅ 跳过无 token 请求
+```ts
+useQuery(QUERY, { skip: !session || !jwt })  // ✓
+useQuery(QUERY, { skip: !session })          // ✗ 可能发送无效请求
+```
+
+#### 4. 登出清理
+```ts
+// 必须清理所有相关 cookie
+jwt=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;
+next-auth.session-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;
+```
+
+#### 5. 错误处理
+- 会话过期: `error?.message === 'Forbidden resource'`
+- 重新登录时确保: `redirect: true, callbackUrl: origin`
+
+### 调试技巧
+1. 检查 Network:
+   - `/api/auth/session` 返回完整 session
+   - GraphQL 请求包含 Authorization header
+2. 检查 Cookie:
+   - `jwt` 存在且未过期
+   - `next-auth.session-token` 存在
+
+### 常见问题
+1. 循环登录: 检查 JWT 同步和 cookie 设置
+2. 401/403: 检查 Authorization header 格式
+3. Session 数据不完整: 检查 next-auth callbacks

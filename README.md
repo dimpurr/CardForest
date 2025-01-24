@@ -1,6 +1,30 @@
 # CardForest
 
-CardForest is a graph note database.
+CardForest is a modern knowledge management application that helps you organize and connect your thoughts, notes, and ideas.
+
+## Features
+
+- Rich text editing with TipTap
+- Visual relationship mapping with React Flow
+- Customizable card templates
+- Dark mode support
+- Cross-platform support (Web & Desktop)
+
+## Tech Stack
+
+- **Frontend**:
+  - Next.js (React)
+  - Radix UI (Accessible UI components)
+  - Tailwind CSS (Styling)
+  - Jotai (State management)
+  - TipTap (Rich text editor)
+  - React Flow (Relationship visualization)
+
+- **Backend**:
+  - Node.js
+  - GraphQL
+  - MongoDB
+  - TypeScript
 
 ## Initial Setup
 
@@ -99,3 +123,30 @@ docker rm arangodb-instance
 ```
 
 Note: You can also use the `make db` command to start ArangoDB in a Docker container, as described in the `How to Run` section.
+
+## Development
+
+1. Install dependencies:
+```bash
+pnpm install
+```
+
+2. Start the development server:
+```bash
+pnpm dev
+```
+
+## Architecture
+
+CardForest is designed with a modular architecture that supports multiple deployment modes:
+- Web application (Next.js)
+- Desktop application (Electron)
+- Universal/Isomorphic core logic
+
+## Contributing
+
+Contributions are welcome! Please read our contributing guidelines for details.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

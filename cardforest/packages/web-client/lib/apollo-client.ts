@@ -2,22 +2,26 @@ import { ApolloClient, InMemoryCache, createHttpLink } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
 
 const httpLink = createHttpLink({
-  uri: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3030'}/graphql`,
+  uri: 'http://localhost:3030/graphql',
   credentials: 'include',
 });
 
 const authLink = setContext((_, { headers }) => {
-  // Get the JWT token from cookie
-  let token;
-  if (typeof window !== 'undefined') {
-    token = document.cookie.split('; ').find(row => row.startsWith('jwt='))?.split('=')[1];
+  // 从 cookie 获取 token
+  const token = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('jwt='))
+    ?.split('=')[1];
+
+  // 如果没有 token，不添加认证头
+  if (!token) {
+    return { headers };
   }
 
-  // Always include the token in Authorization header if it exists
   return {
     headers: {
       ...headers,
-      Authorization: token ? `Bearer ${token}` : '',
+      'Authorization': `Bearer ${token}`,
     },
   };
 });

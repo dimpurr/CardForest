@@ -1,7 +1,10 @@
 import { useQuery, gql } from '@apollo/client';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import { Button } from '../components/ui/Button';
+import { Alert } from '../components/ui/Alert';
 import CreateCard from '../components/CreateCard';
+import { useCallback, useEffect } from 'react';
+import { useJWT } from '../hooks/useJWT';
 
 const GET_MY_CARDS = gql`
   query GetMyCards {
@@ -15,15 +18,66 @@ const GET_MY_CARDS = gql`
 `;
 
 export default function Home() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const jwt = useJWT();
   const { loading, error, data, refetch } = useQuery(GET_MY_CARDS, {
-    skip: !session,
+    skip: !session || !jwt,
   });
 
-  if (loading) return <div className="p-4">Loading...</div>;
-  if (error) {
-    console.error('Error fetching cards:', error);
-    return <div className="p-4 text-red-500">Error loading cards</div>;
+  const handleSignOut = useCallback(async () => {
+    // 清除 cookie
+    document.cookie = 'jwt=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    document.cookie = 'next-auth.session-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    // 调用 next-auth 的登出
+    await signOut();
+  }, []);
+
+  const handleSignIn = useCallback(() => {
+    signIn('github', {
+      callbackUrl: window.location.origin,
+      redirect: true,
+    });
+  }, []);
+
+  // 当 session 变化时，重新获取卡片
+  useEffect(() => {
+    if (session && jwt) {
+      refetch();
+    }
+  }, [session, jwt, refetch]);
+
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen p-6">
+        <Alert>
+          <Alert.Description>Loading session...</Alert.Description>
+        </Alert>
+      </div>
+    );
+  }
+
+  const showError = error && session;
+  const isAuthError = error?.message === 'Forbidden resource';
+
+  if (showError && isAuthError) {
+    return (
+      <div className="min-h-screen p-6">
+        <Alert variant="error">
+          <Alert.Title>Session Expired</Alert.Title>
+          <Alert.Description>
+            Your session has expired. Please sign in again.
+          </Alert.Description>
+          <div className="mt-4">
+            <Button
+              variant="primary"
+              onClick={handleSignIn}
+            >
+              Sign in again
+            </Button>
+          </div>
+        </Alert>
+      </div>
+    );
   }
 
   return (
@@ -40,10 +94,7 @@ export default function Home() {
             <div className="flex gap-4 justify-center">
               <Button
                 variant="primary"
-                onClick={() => signIn('github', { 
-                  callbackUrl: window.location.origin,
-                  redirect_uri: 'http://localhost:3030/user/auth/github/callback?client=web'
-                })}
+                onClick={handleSignIn}
               >
                 Sign in with GitHub
               </Button>
@@ -59,7 +110,7 @@ export default function Home() {
             <h1 className="text-2xl font-bold">
               Welcome {session.user?.name}
             </h1>
-            <Button variant="secondary" onClick={() => signOut()}>
+            <Button variant="secondary" onClick={handleSignOut}>
               Sign out
             </Button>
           </div>
@@ -69,19 +120,36 @@ export default function Home() {
               <h2 className="text-xl font-semibold">My Cards</h2>
               <CreateCard onCardCreated={refetch} />
             </div>
-            <div className="grid gap-4">
-              {data?.myCards?.map((card: any) => (
-                <div key={card._id} className="card p-4 space-y-2">
-                  <h3 className="text-lg font-medium">{card.title}</h3>
-                  <p className="text-neutral-600 dark:text-neutral-400">
-                    {card.content}
-                  </p>
-                  <p className="text-sm text-neutral-500">
-                    Created at: {new Date(card.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-              ))}
-            </div>
+            {loading ? (
+              <Alert>
+                <Alert.Description>Loading cards...</Alert.Description>
+              </Alert>
+            ) : error ? (
+              <Alert variant="error">
+                <Alert.Title>Error</Alert.Title>
+                <Alert.Description>{error.message}</Alert.Description>
+              </Alert>
+            ) : data?.myCards?.length === 0 ? (
+              <Alert variant="default">
+                <Alert.Description>
+                  No cards yet. Create your first card to get started!
+                </Alert.Description>
+              </Alert>
+            ) : (
+              <div className="grid gap-4">
+                {data?.myCards?.map((card: any) => (
+                  <div key={card._id} className="card p-4 space-y-2">
+                    <h3 className="text-lg font-medium">{card.title}</h3>
+                    <p className="text-neutral-600 dark:text-neutral-400">
+                      {card.content}
+                    </p>
+                    <p className="text-sm text-neutral-500">
+                      Created at: {new Date(card.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
