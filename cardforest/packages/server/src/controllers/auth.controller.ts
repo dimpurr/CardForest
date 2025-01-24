@@ -36,32 +36,30 @@ export class AuthController {
     this.logger.log('Received OAuth callback:', {
       provider: data.provider,
       hasAccessToken: !!data.access_token,
+      hasProviderId: !!data.providerId,
+      providerId: data.providerId,
       profile: data.profile,
     });
 
     if (!data.access_token || !data.profile) {
+      this.logger.error('Invalid OAuth data:', data);
       throw new UnauthorizedException('Invalid OAuth data');
     }
 
     try {
       // 使用 access_token 和 profile 生成 JWT
-      // Auth.js 的 GitHub provider 使用 sub 作为用户 ID
       const jwt = await this.authService.validateOAuthLogin({
         provider: data.provider,
-        providerId: data.profile.sub || data.profile.id,
+        providerId: data.providerId,
         profile: data.profile,
         accessToken: data.access_token,
       });
 
-      this.logger.log('Generated JWT:', { 
-        hasJwt: !!jwt,
-        jwtPreview: jwt ? `${jwt.slice(0, 10)}...` : null
-      });
-
+      this.logger.log('JWT generated successfully');
       return { jwt };
     } catch (error) {
       this.logger.error('JWT generation failed:', error);
-      throw new UnauthorizedException('Failed to generate JWT');
+      throw new UnauthorizedException('Failed to validate OAuth login');
     }
   }
 

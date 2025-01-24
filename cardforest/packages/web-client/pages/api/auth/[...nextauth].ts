@@ -70,7 +70,7 @@ export const authOptions: AuthOptions = {
             body: JSON.stringify({ 
               access_token: account?.access_token,
               provider: 'github',
-              providerId: (profile as any).id || (profile as any).sub, // 直接传递 providerId
+              providerId: (profile as any).id || (profile as any).sub,
               profile: {
                 sub: (profile as any).sub,
                 id: (profile as any).id,
@@ -81,58 +81,48 @@ export const authOptions: AuthOptions = {
           })
 
           if (!response.ok) {
-            const error = await response.text()
-            console.error('JWT fetch failed:', { status: response.status, error })
-            throw new Error(`Failed to fetch JWT: ${error}`)
+            console.error('Failed to fetch JWT:', response.status, response.statusText)
+            throw new Error('Failed to fetch JWT')
           }
 
           const data = await response.json()
-          console.log('JWT fetch success:', { 
+          console.log('Backend JWT response:', { 
             hasJwt: !!data.jwt,
             jwtPreview: data.jwt ? `${data.jwt.slice(0, 10)}...` : null
           })
+
+          // 将 JWT 存储在 token 中
+          token.backendJwt = data.jwt
           
-          return {
-            ...token,
-            backendJwt: data.jwt,
-            provider: 'github',
-            profile: {
-              sub: (profile as any).sub,
-              id: (profile as any).id,
-              login: (profile as any).login,
-              email: (profile as any).email
-            }
+          // 同时设置 cookie 以便 Apollo Client 使用
+          const cookies = new Headers(response.headers).get('set-cookie')
+          if (cookies) {
+            console.log('Setting cookies from backend')
+            // 这里不需要手动设置，因为 fetch 会自动处理 set-cookie 头
           }
         } catch (error) {
-          console.error('JWT fetch error:', error)
-          return token
+          console.error('Error fetching JWT:', error)
+          // 不要抛出错误，让用户继续使用基本功能
         }
       }
 
       return token
     },
 
-    async session({ session, token, trigger }) {
-      console.log('Auth.js session callback:', {
-        trigger,
+    async session({ session, token }) {
+      console.log('Auth.js Session callback:', {
         hasSession: !!session,
         hasToken: !!token,
         hasBackendJwt: !!token.backendJwt,
-        sessionKeys: Object.keys(session || {}),
-        tokenKeys: Object.keys(token || {})
+        sessionKeys: Object.keys(session)
       })
 
-      if (!token?.backendJwt) {
-        console.warn('No backend JWT available in session callback')
-        return session
+      // 确保 backendJwt 被包含在会话中
+      if (token.backendJwt) {
+        session.backendJwt = token.backendJwt
       }
 
-      return {
-        ...session,
-        backendJwt: token.backendJwt,
-        provider: token.provider,
-        profile: token.profile
-      }
+      return session
     }
   },
   debug: true,
