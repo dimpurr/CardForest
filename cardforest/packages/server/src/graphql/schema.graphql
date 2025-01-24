@@ -9,12 +9,28 @@ type User {
   updatedAt: Date!
 }
 
+type FieldDefinition {
+  name: String!
+  type: String!
+  required: Boolean
+  default: JSON
+  options: [String!]
+  config: JSON
+}
+
+type FieldGroup {
+  _inherit_from: String!
+  fields: [FieldDefinition!]!
+}
+
 type Template {
   _key: ID!
   _id: ID!
   name: String!
-  fields: JSON!
-  parent: Template
+  inherits_from: [String!]!
+  fields: [FieldGroup!]!
+  flattenedFields: JSON!  # For backward compatibility
+  system: Boolean!
   createdAt: Date!
   updatedAt: Date!
   createdBy: User
@@ -38,64 +54,75 @@ type CardWithRelations {
   children: [Card!]!
 }
 
+input FieldDefinitionInput {
+  name: String!
+  type: String!
+  required: Boolean
+  default: JSON
+  options: [String!]
+  config: JSON
+}
+
+input FieldGroupInput {
+  _inherit_from: String!
+  fields: [FieldDefinitionInput!]!
+}
+
+input CreateTemplateInput {
+  name: String!
+  inherits_from: [String!]
+  fields: [FieldGroupInput!]
+}
+
+input UpdateTemplateInput {
+  name: String
+  inherits_from: [String!]
+  fields: [FieldGroupInput!]
+}
+
 type Query {
-  # 用户相关
+  # User related
   me: User
   user(id: ID!): User
   users: [User!]!
 
-  # 卡片相关
+  # Card related
   card(id: ID!): Card
   cards: [Card!]!
   myCards: [Card!]!
   cardsWithRelations: [CardWithRelations!]!
 
-  # 模板相关
+  # Template related
   template(id: ID!): Template
   templates: [Template!]!
   userTemplates: [Template!]!
 }
 
-input CreateCardInput {
-  template: ID!
-  title: String!
-  content: String
-  body: String
-  meta: JSON!
-}
-
-input UpdateCardInput {
-  title: String
-  content: String
-  body: String
-  meta: JSON
-}
-
-input CreateTemplateInput {
-  name: String!
-  fields: JSON!
-  parent: ID
-}
-
-input UpdateTemplateInput {
-  name: String
-  fields: JSON
-  parent: ID
-}
-
 type Mutation {
-  # 用户相关
-  register(username: String!, password: String!): User!
+  # User related
   login(username: String!, password: String!): String!
+  register(username: String!, password: String!): User!
 
-  # 卡片相关
-  createCard(input: CreateCardInput!): Card!
-  updateCard(id: ID!, input: UpdateCardInput!): Card!
-  deleteCard(id: ID!): Boolean!
-  createRelation(fromCardId: ID!, toCardId: ID!): Boolean!
-
-  # 模板相关
+  # Template related
   createTemplate(input: CreateTemplateInput!): Template!
   updateTemplate(id: ID!, input: UpdateTemplateInput!): Template!
   deleteTemplate(id: ID!): Boolean!
+
+  # Card related
+  createCard(
+    templateId: ID!
+    title: String!
+    content: String
+    body: String
+    meta: JSON
+  ): Card!
+  updateCard(
+    id: ID!
+    title: String
+    content: String
+    body: String
+    meta: JSON
+  ): Card!
+  deleteCard(id: ID!): Boolean!
+  createRelation(fromCardId: ID!, toCardId: ID!): Boolean!
 }

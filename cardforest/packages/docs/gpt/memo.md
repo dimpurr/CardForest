@@ -4,7 +4,7 @@
 
 ## 杂项
 
-* 我们都用 pnpm 。
+* 我们都用 pnpm 。我们使用 radix ui 且会自动支持夜间模式。我们使用 jotai 。记得看我们的架构和技术选型。
 
 ## 系统架构设计
 * CardForest采用三种部署模式的同构架构设计：基于Next.js的Web应用支持公开访问与实时协作；Electron桌面应用提供本地存储与系统集成；同构部署模式在共享核心业务逻辑基础上适配不同运行环境。核心代码组织分为core（共享逻辑）、web-client（Next.js应用）、desktop（Electron应用）和server（后端服务）四个包，通过Repository模式隔离数据访问实现Web模式使用远程ArangoDB、Desktop模式使用本地存储的数据层抽象，认证系统在Web模式下使用OAuth+JWT、Desktop模式使用系统级认证，文件系统则分别对应云存储和本地文件系统，使用Jotai通过Provider模式注入环境依赖实现状态管理。
@@ -21,6 +21,10 @@
 
 ## 数据模型与API设计
 * API命名规范：使用my前缀表示当前用户相关查询如myCards而非userCards，使用full后缀表示包含完整关联数据的查询如card/full，需保持命名一致性避免同一概念使用不同名称。模板系统支持从基础模板到特化模板的继承关系，字段定义包含验证规则和UI展示信息，自动处理系统字段。卡片系统包含title/content/body基础字段，使用meta字段存储模板特定数据，通过relations集合管理父子关系。数据关联使用_key而非完整_id路径，GraphQL查询需要通过AQL JOIN获取完整关联对象。
+
+## 模板系统
+
+* 模板继承采用原型链机制：festival_date_card -> datecard -> basic_card，字段按来源分组存储，每组用_inherit_from标记来源模板。编辑器中title/body/content在顶部，meta区域按模板来源分组显示。字段存储格式：{name:"festival_date_card", inherits_from:["datecard"], fields:[{_inherit_from:"basic_card",fields:[{name:"title",type:"text"}]},{_inherit_from:"datecard",fields:[{name:"start_date",type:"date"}]},{_inherit_from:"_self",fields:[{name:"origin",type:"text"}]}]}。GraphQL返回扁平化字段用flattenedFields保持兼容。
 
 ## 经验教训
 

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ArangoDBService } from './arangodb.service';
 import { Database, aql } from 'arangojs';
-import { Template, FieldDefinition } from '../interfaces/template.interface';
+import { Template, FieldDefinition, FieldGroup, FlattenedTemplate } from '../interfaces/template.interface';
 
 @Injectable()
 export class TemplateService {
@@ -13,46 +13,24 @@ export class TemplateService {
     this.templateCollection = this.db.collection('templates');
   }
 
-  async getTemplates(): Promise<any[]> {
+  async getTemplates(): Promise<FlattenedTemplate[]> {
     try {
       const db = this.arangoDBService.getDatabase();
-      const query = `
-        FOR template IN templates
-        SORT template.createdAt DESC
-        RETURN {
-          _id: template._id,
-          _key: template._key,
-          name: template.name,
-          createdAt: template.createdAt,
-          updatedAt: template.updatedAt,
-          createdBy: template.createdBy
-        }
-      `;
-      const cursor = await db.query(query);
-      const templates = await cursor.all();
-      return templates;
+      const templates = await this.getTemplatesWithFields();
+      return templates.map(template => this.flattenTemplate(template));
     } catch (error) {
       console.error('Failed to get templates:', error);
       throw error;
     }
   }
 
-  async getTemplatesWithFields(): Promise<any[]> {
+  async getTemplatesWithFields(): Promise<Template[]> {
     try {
       const db = this.arangoDBService.getDatabase();
-      const query = `
+      const query = aql`
         FOR template IN templates
         SORT template.createdAt DESC
-        RETURN {
-          _id: template._id,
-          _key: template._key,
-          name: template.name,
-          fields: template.fields,
-          system: template.system,
-          createdAt: template.createdAt,
-          updatedAt: template.updatedAt,
-          createdBy: template.createdBy
-        }
+        RETURN template
       `;
       const cursor = await db.query(query);
       const templates = await cursor.all();
@@ -63,19 +41,74 @@ export class TemplateService {
     }
   }
 
-  async getTemplateById(templateId: string): Promise<Template | null> {
+  async getTemplateById(id: string): Promise<FlattenedTemplate> {
     try {
-      const query = aql`
-        FOR template IN templates
-        FILTER template._key == ${templateId}
-        RETURN template
-      `;
-      const cursor = await this.db.query(query);
-      return cursor.next();
+      const template = await this.getFullTemplateById(id);
+      if (!template) {
+        throw new Error('Template not found');
+      }
+      return this.flattenTemplate(template);
     } catch (error) {
-      console.error('Failed to get template:', error);
+      console.error('Failed to get template by id:', error);
       throw error;
     }
+  }
+
+  async getFullTemplateById(id: string): Promise<Template> {
+    try {
+      const db = this.arangoDBService.getDatabase();
+      const query = aql`
+        FOR template IN templates
+        FILTER template._key == ${id}
+        RETURN template
+      `;
+      const cursor = await db.query(query);
+      const [template] = await cursor.all();
+      
+      if (!template) {
+        throw new Error('Template not found');
+      }
+
+      // Load inherited templates
+      const inheritedTemplates = await Promise.all(
+        (template.inherits_from || []).map(parentId => this.getFullTemplateById(parentId))
+      );
+
+      // Merge inherited fields
+      template.fields = [
+        ...inheritedTemplates.flatMap(parent => parent.fields),
+        ...(template.fields || [])
+      ];
+
+      return template;
+    } catch (error) {
+      console.error('Failed to get full template by id:', error);
+      throw error;
+    }
+  }
+
+  private flattenTemplate(template: Template): FlattenedTemplate {
+    const flatFields: Record<string, FieldDefinition> = {};
+    
+    // Flatten fields from all groups
+    template.fields.forEach(group => {
+      group.fields.forEach(field => {
+        // Only add the field if it hasn't been overridden
+        if (!flatFields[field.name]) {
+          flatFields[field.name] = field;
+        }
+      });
+    });
+
+    return {
+      _key: template._key,
+      name: template.name,
+      fields: flatFields,
+      system: template.system,
+      createdAt: template.createdAt,
+      updatedAt: template.updatedAt,
+      createdBy: template.createdBy
+    };
   }
 
   async getTemplateWithInheritance(templateId: string): Promise<Template> {
@@ -85,11 +118,11 @@ export class TemplateService {
         throw new Error(`Template ${templateId} not found`);
       }
 
-      if (!template.extends) {
+      if (!template.inherits_from) {
         return template;
       }
 
-      const parent = await this.getTemplateWithInheritance(template.extends);
+      const parent = await this.getTemplateWithInheritance(template.inherits_from);
       return {
         ...template,
         fields: {
@@ -106,7 +139,7 @@ export class TemplateService {
   async createTemplate(
     name: string,
     fields: Record<string, FieldDefinition>,
-    extends_?: string,
+    inherits_from?: string,
     userId?: string,
   ): Promise<Template> {
     try {
@@ -114,10 +147,10 @@ export class TemplateService {
       this.validateFields(fields);
 
       // 如果有继承，验证父模板
-      if (extends_) {
-        const parent = await this.getTemplateById(extends_);
+      if (inherits_from) {
+        const parent = await this.getTemplateById(inherits_from);
         if (!parent) {
-          throw new Error(`Parent template ${extends_} not found`);
+          throw new Error(`Parent template ${inherits_from} not found`);
         }
       }
 
@@ -125,7 +158,7 @@ export class TemplateService {
       const template = await this.templateCollection.save({
         name,
         fields,
-        extends: extends_,
+        inherits_from,
         system: false,
         createdAt: now,
         updatedAt: now,
@@ -184,7 +217,7 @@ export class TemplateService {
       // 检查是否有其他模板继承自此模板
       const query = aql`
         FOR t IN templates
-        FILTER t.extends == ${templateId}
+        FILTER t.inherits_from == ${templateId}
         RETURN t
       `;
       const cursor = await this.db.query(query);

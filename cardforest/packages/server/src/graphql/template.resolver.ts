@@ -1,19 +1,20 @@
-import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, ResolveField, Parent } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { TemplateService } from '../services/template.service';
 import { CurrentUser } from '../decorators/current-user.decorator';
-import { Template } from '../interfaces/template.interface';
+import { Template, FlattenedTemplate } from '../interfaces/template.interface';
 
 interface CreateTemplateInput {
   name: string;
-  extends?: string;
+  inherits_from?: string;
   fields: Record<string, any>;
 }
 
 interface UpdateTemplateInput {
   name?: string;
   fields?: Record<string, any>;
+  inherits_from?: string;
 }
 
 @Resolver('Template')
@@ -22,12 +23,18 @@ export class TemplateResolver {
 
   @Query('templates')
   async getTemplates(): Promise<Template[]> {
-    return this.templateService.getTemplates();
+    return this.templateService.getTemplatesWithFields();
   }
 
   @Query('template')
   async getTemplate(@Args('id') id: string): Promise<Template> {
-    return this.templateService.getTemplateById(id);
+    return this.templateService.getFullTemplateById(id);
+  }
+
+  @ResolveField('flattenedFields')
+  getFlattenedFields(@Parent() template: Template) {
+    const flattened = this.templateService.flattenTemplate(template);
+    return flattened.fields;
   }
 
   @Mutation('createTemplate')
@@ -39,8 +46,8 @@ export class TemplateResolver {
     return this.templateService.createTemplate(
       input.name,
       input.fields,
-      input.extends,
-      user._key,
+      input.inherits_from,
+      user?._key,
     );
   }
 
@@ -50,7 +57,11 @@ export class TemplateResolver {
     @Args('id') id: string,
     @Args('input') input: UpdateTemplateInput,
   ): Promise<Template> {
-    return this.templateService.updateTemplate(id, input);
+    return this.templateService.updateTemplate(id, {
+      name: input.name,
+      fields: input.fields,
+      inherits_from: input.inherits_from,
+    });
   }
 
   @Mutation('deleteTemplate')

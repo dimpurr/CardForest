@@ -3,8 +3,7 @@ import { gql, useMutation, useQuery } from '@apollo/client';
 import { useSession } from 'next-auth/react';
 import { useJWT } from '../hooks/useJWT';
 import { Button } from './ui/Button';
-import { Input } from './ui/Input';
-import { Textarea } from './ui/Textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/Select';
 import {
   Dialog,
   DialogContent,
@@ -16,16 +15,8 @@ import {
 import { Alert } from './ui/Alert';
 import { useAtom } from 'jotai';
 import { cardsAtom } from '../store/cards';
-
-const GET_TEMPLATES = gql`
-  query GetTemplates {
-    templates {
-      _id
-      _key
-      name
-    }
-  }
-`;
+import { CardEditor } from './CardEditor';
+import { GET_TEMPLATES } from '../graphql/queries';
 
 const CREATE_CARD = gql`
   mutation CreateCard($input: CreateCardInput!) {
@@ -43,9 +34,8 @@ const CREATE_CARD = gql`
 
 export default function CreateCard({ onCardCreated }: { onCardCreated?: () => void }) {
   const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [cardData, setCardData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
@@ -61,9 +51,8 @@ export default function CreateCard({ onCardCreated }: { onCardCreated?: () => vo
       // 更新 Jotai 状态
       setCards([data.createCard, ...cards]);
       setTimeout(() => {
-        setTitle('');
-        setContent('');
         setSelectedTemplate('');
+        setCardData(null);
         setOpen(false);
         setSuccess(false);
         if (onCardCreated) {
@@ -82,8 +71,8 @@ export default function CreateCard({ onCardCreated }: { onCardCreated?: () => vo
       return;
     }
 
-    if (!title.trim() || !content.trim() || !selectedTemplate) {
-      setError('Title, content and template are required');
+    if (!selectedTemplate || !cardData?.title) {
+      setError('Template and title are required');
       return;
     }
 
@@ -91,10 +80,11 @@ export default function CreateCard({ onCardCreated }: { onCardCreated?: () => vo
     await createCard({
       variables: {
         input: {
-          title: title.trim(),
-          content: content.trim(),
+          title: cardData.title.trim(),
+          content: cardData.content?.trim() || '',
+          body: cardData.body?.trim() || '',
           template: selectedTemplate,
-          meta: {},
+          meta: cardData.meta || {},
         },
       },
     });
@@ -103,67 +93,55 @@ export default function CreateCard({ onCardCreated }: { onCardCreated?: () => vo
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="primary">Create New Card</Button>
+        <Button>Create Card</Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Create New Card</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
           {error && (
-            <Alert variant="error">
-              <Alert.Title>Error</Alert.Title>
-              <Alert.Description>{error}</Alert.Description>
+            <Alert variant="destructive" className="mb-4">
+              {error}
             </Alert>
           )}
           {success && (
-            <Alert variant="success">
-              <Alert.Title>Success!</Alert.Title>
-              <Alert.Description>Card created successfully</Alert.Description>
+            <Alert className="mb-4">
+              Card created successfully!
             </Alert>
           )}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Template</label>
-            {templatesLoading ? (
-              <div>Loading templates...</div>
-            ) : (
-              <select
-                className="w-full p-2 border rounded"
-                value={selectedTemplate}
-                onChange={(e) => setSelectedTemplate(e.target.value)}
-              >
-                <option value="">Select a template</option>
-                {templatesData?.templates?.map((template: any) => (
-                  <option key={template._key} value={template._key}>
+          
+          {/* Template Selection */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Template</label>
+            <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a template" />
+              </SelectTrigger>
+              <SelectContent>
+                {templatesData?.templates.map((template: any) => (
+                  <SelectItem key={template._key} value={template._key}>
                     {template.name}
-                  </option>
+                  </SelectItem>
                 ))}
-              </select>
-            )}
+              </SelectContent>
+            </Select>
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Title</label>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter card title"
+
+          {/* Card Editor */}
+          {selectedTemplate && (
+            <CardEditor
+              templateId={selectedTemplate}
+              onChange={setCardData}
             />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Content</label>
-            <Textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Enter card content"
-            />
-          </div>
+          )}
         </div>
         <DialogFooter>
-          <Button variant="secondary" onClick={() => setOpen(false)}>
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={handleSubmit} disabled={loading}>
-            {loading ? 'Creating...' : 'Create Card'}
+          <Button
+            onClick={handleSubmit}
+            disabled={loading || !selectedTemplate || !cardData?.title}
+          >
+            {loading ? 'Creating...' : 'Create'}
           </Button>
         </DialogFooter>
       </DialogContent>
