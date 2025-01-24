@@ -40,13 +40,6 @@ export const GET_TEMPLATE_WITH_INHERITANCE = gql`
   query GetTemplateWithInheritance($id: ID!) {
     template(id: $id) {
       ...TemplateFields
-      flattenedFields {
-        name
-        type
-        required
-        default
-        sourceTemplate
-      }
     }
   }
   ${TEMPLATE_FIELDS_FRAGMENT}

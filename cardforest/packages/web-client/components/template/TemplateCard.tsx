@@ -27,7 +27,12 @@ export function TemplateCard({ template, isSelected, onClick }: TemplateCardProp
           <button
             onClick={(e) => {
               e.stopPropagation();
-              router.push(`/templates/${template._id}/edit`);
+              // 从 _id 中提取纯数字 ID
+              const id = template._id.replace('templates/', '');
+              router.push({
+                pathname: '/templates/[id]/edit',
+                query: { id }
+              });
             }}
             className="text-sm px-2 py-1 text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
           >

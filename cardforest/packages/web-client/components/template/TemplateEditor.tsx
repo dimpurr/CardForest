@@ -20,6 +20,19 @@ export function TemplateEditor({ mode, template }: TemplateEditorProps) {
     template?.fields || [{ _inherit_from: '_self', fields: [] }]
   );
 
+  const { data: templatesData } = useQuery(GET_TEMPLATES);
+  const availableTemplates = templatesData?.templates || [];
+
+  // 当前模板的字段组应该是从其他模板继承的字段
+  const inheritedTemplate = templatesData?.templates?.find(
+    (t: any) => t._id === `templates/${fields[0]?._inherit_from}`
+  );
+
+  // 获取继承模板的自有字段
+  const inheritedFields = inheritedTemplate?.fields?.filter(
+    (group: FieldGroup) => group._inherit_from === '_self'
+  ) || [];
+
   const [createTemplate] = useMutation(CREATE_TEMPLATE, {
     refetchQueries: [{ query: GET_TEMPLATES }],
   });
@@ -28,16 +41,13 @@ export function TemplateEditor({ mode, template }: TemplateEditorProps) {
     refetchQueries: [{ query: GET_TEMPLATES }],
   });
 
-  const { data: templatesData } = useQuery(GET_TEMPLATES);
-  const availableTemplates = templatesData?.templates || [];
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const input = {
         name,
         inherits_from: inheritsFrom,
-        fields: fields.filter((group) => group._inherit_from === '_self'),
+        fields: fields,  // 保持原有的字段组
       };
 
       if (mode === 'create') {
@@ -54,7 +64,6 @@ export function TemplateEditor({ mode, template }: TemplateEditorProps) {
       router.push('/templates');
     } catch (error) {
       console.error('Failed to save template:', error);
-      // TODO: Add error handling
     }
   };
 
@@ -83,13 +92,37 @@ export function TemplateEditor({ mode, template }: TemplateEditorProps) {
         />
       </div>
 
-      <div>
-        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Fields</h3>
-        <FieldEditor
-          fields={fields.find((group) => group._inherit_from === '_self')?.fields || []}
-          onChange={(newFields) =>
-            setFields([{ _inherit_from: '_self', fields: newFields }, ...fields.slice(1)])}
-        />
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-lg font-semibold mb-2">Fields</h2>
+          <FieldEditor
+            fields={fields[0]?.fields || []}
+            onChange={(newFields) =>
+              setFields([{ _inherit_from: fields[0]?._inherit_from || '_self', fields: newFields }])
+            }
+          />
+        </div>
+
+        {inheritedFields.length > 0 && (
+          <div>
+            <h2 className="text-lg font-semibold mb-2">Inherited Fields</h2>
+            {inheritedFields.map((group) => (
+              <div key={group._inherit_from} className="mt-4">
+                <div className="pl-4">
+                  {group.fields.map((field) => (
+                    <div key={field.name} className="py-2 text-gray-600">
+                      <span className="font-medium">{field.name}</span>
+                      <span className="ml-2 text-sm">({field.type})</span>
+                      {field.required && (
+                        <span className="ml-2 text-xs text-red-500">Required</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex justify-end space-x-4">
