@@ -79,3 +79,23 @@ var usersQuery = `FOR user IN users RETURN user`;
 var usersResult = db._query(usersQuery).toArray();
 console.log(usersResult);
 ```
+
+### ArangoDB Docker
+
+To use ArangoDB with Docker, you can use the following commands:
+
+```bash
+# Pull the ArangoDB Docker image
+docker pull arangodb/arangodb:latest
+
+# Run ArangoDB in a Docker container
+docker run -d --name arangodb-instance -p 8529:8529 -v ~/arangodb:/var/lib/arangodb arangodb/arangodb:latest
+
+# Stop the ArangoDB container
+docker stop arangodb-instance
+
+# Remove the ArangoDB container
+docker rm arangodb-instance
+```
+
+Note: You can also use the `make db` command to start ArangoDB in a Docker container, as described in the `How to Run` section.

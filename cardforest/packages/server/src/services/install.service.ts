@@ -42,6 +42,13 @@ export class InstallService {
 
   async createDefaultCards(): Promise<void> {
     try {
+      // Get admin user ID first
+      const adminUser = await this.userService.getUserByUsername('admin');
+      if (!adminUser) {
+        throw new Error('Admin user not found');
+      }
+      const adminId = adminUser._id;
+
       const card1Id = await this.cardService.createCard(
         'Hello',
         'This is the default 1',
@@ -64,11 +71,11 @@ export class InstallService {
       );
 
       // 建立卡片之间的 child 关系
-      await this.cardService.createRelation(card1Id, card2Id);
-      await this.cardService.createRelation(card2Id, card3Id);
-      await this.cardService.createRelation(card3Id, card1Id); // 创建环形关系
-      await this.cardService.createRelation(card4Id, card1Id);
-      await this.cardService.createRelation(card4Id, card3Id);
+      await this.cardService.createRelation(card1Id, card2Id, adminId);
+      await this.cardService.createRelation(card2Id, card3Id, adminId);
+      await this.cardService.createRelation(card3Id, card1Id, adminId); // 创建环形关系
+      await this.cardService.createRelation(card4Id, card1Id, adminId);
+      await this.cardService.createRelation(card4Id, card3Id, adminId);
     } catch (error) {
       console.error('Failed to create default cards and relations:', error);
     }
