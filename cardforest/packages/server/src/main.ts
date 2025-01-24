@@ -10,10 +10,11 @@ async function bootstrap() {
   
   // 配置 CORS
   app.enableCors({
-    origin: [process.env.FRONTEND_URL || 'http://localhost:3000', 'http://localhost:3030'],
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     credentials: true,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'Origin', 'X-Requested-With'],
+    exposedHeaders: ['Set-Cookie'],
   });
   
   app.use(cookieParser());

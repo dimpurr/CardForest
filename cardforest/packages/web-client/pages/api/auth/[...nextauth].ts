@@ -36,6 +36,7 @@ export const authOptions: NextAuthOptions = {
       if (account && user) {
         // 获取 JWT
         const jwt = await fetchJWT(account.access_token as string);
+        console.log('NextAuth JWT callback:', { jwt, user });
         
         return {
           ...token,
@@ -45,10 +46,12 @@ export const authOptions: NextAuthOptions = {
           jwt,
         };
       }
+
       return token;
     },
+
     async session({ session, token }) {
-      // 把 token 中的信息加到 session 中
+      // 将 JWT 添加到 session 中
       return {
         ...session,
         accessToken: token.accessToken,
@@ -62,7 +65,18 @@ export const authOptions: NextAuthOptions = {
     error: '/auth/error',
   },
   // 开启 debug 模式帮助排查问题
-  debug: process.env.NODE_ENV === 'development',
+  debug: true,
+  cookies: {
+    sessionToken: {
+      name: 'next-auth.session-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+      },
+    },
+  },
 };
 
 export default NextAuth(authOptions);

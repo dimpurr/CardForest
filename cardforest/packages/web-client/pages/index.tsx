@@ -1,10 +1,13 @@
+import { useSession } from 'next-auth/react';
 import { useQuery, gql } from '@apollo/client';
-import { signIn, signOut, useSession } from 'next-auth/react';
+import { signIn, signOut } from 'next-auth/react';
 import { Button } from '../components/ui/Button';
 import { Alert } from '../components/ui/Alert';
 import CreateCard from '../components/CreateCard';
 import { useCallback, useEffect } from 'react';
 import { useJWT } from '../hooks/useJWT';
+import { useAtom } from 'jotai';
+import { cardsAtom, sortedCardsAtom } from '../store/cards';
 
 const GET_MY_CARDS = gql`
   query GetMyCards {
@@ -13,6 +16,9 @@ const GET_MY_CARDS = gql`
       title
       content
       createdAt
+      createdBy {
+        username
+      }
     }
   }
 `;
@@ -20,9 +26,27 @@ const GET_MY_CARDS = gql`
 export default function Home() {
   const { data: session, status } = useSession();
   const jwt = useJWT();
+  const [, setCards] = useAtom(cardsAtom);
+  const [sortedCards] = useAtom(sortedCardsAtom);
+  
+  console.log('Auth State:', { session: !!session, jwt: !!jwt, status });
+  
   const { loading, error, data, refetch } = useQuery(GET_MY_CARDS, {
-    skip: !session || !jwt,
+    skip: !jwt,
+    onCompleted: (data) => {
+      console.log('Query completed:', data);
+      if (data?.myCards) {
+        setCards(data.myCards);
+      }
+    },
+    onError: (error) => {
+      console.error('Query error:', error);
+    },
+    // 确保每次登录后都重新获取数据
+    fetchPolicy: 'cache-and-network',
   });
+
+  console.log('Query State:', { loading, error: error?.message, data });
 
   const handleSignOut = useCallback(async () => {
     // 清除 cookie
@@ -39,12 +63,17 @@ export default function Home() {
     });
   }, []);
 
-  // 当 session 变化时，重新获取卡片
+  // 当 session 或 jwt 变化时，重新获取卡片
   useEffect(() => {
+    console.log('Effect triggered:', { hasSession: !!session, hasJwt: !!jwt });
     if (session && jwt) {
+      console.log('Refetching cards...');
       refetch();
+    } else {
+      console.log('Clearing cards...');
+      setCards([]);
     }
-  }, [session, jwt, refetch]);
+  }, [session, jwt, refetch, setCards]);
 
   if (status === 'loading') {
     return (
@@ -129,7 +158,7 @@ export default function Home() {
                 <Alert.Title>Error</Alert.Title>
                 <Alert.Description>{error.message}</Alert.Description>
               </Alert>
-            ) : data?.myCards?.length === 0 ? (
+            ) : sortedCards.length === 0 ? (
               <Alert variant="default">
                 <Alert.Description>
                   No cards yet. Create your first card to get started!
@@ -137,7 +166,7 @@ export default function Home() {
               </Alert>
             ) : (
               <div className="grid gap-4">
-                {data?.myCards?.map((card: any) => (
+                {sortedCards.map((card) => (
                   <div key={card._id} className="card p-4 space-y-2">
                     <h3 className="text-lg font-medium">{card.title}</h3>
                     <p className="text-neutral-600 dark:text-neutral-400">
