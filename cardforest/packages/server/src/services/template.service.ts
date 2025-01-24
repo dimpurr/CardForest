@@ -109,6 +109,7 @@ export class TemplateService {
 
     return {
       _key: template._key,
+      _id: template._id,
       name: template.name,
       fields: flattenedFields,
       system: template.system,
@@ -170,7 +171,7 @@ export class TemplateService {
       basicGroup.fields.forEach(field => {
         const value = cardData[field.name];
         if (field.required && (value === undefined || value === null || value === '')) {
-          throw new Error(`Missing required basic field: ${field.name}`);
+          throw new Error(`Missing required field: ${field.name}`);
         }
         if (value !== undefined && value !== null) {
           this.validateFieldValue(field.name, value, field);
@@ -179,17 +180,19 @@ export class TemplateService {
     }
 
     // Validate meta fields
-    metaGroups.forEach(group => {
-      group.fields.forEach(field => {
-        const value = cardData.meta?.[field.name];
-        if (field.required && (value === undefined || value === null || value === '')) {
-          throw new Error(`Missing required meta field: ${field.name}`);
-        }
-        if (value !== undefined && value !== null) {
-          this.validateFieldValue(`meta.${field.name}`, value, field);
-        }
+    if (cardData.meta) {
+      metaGroups.forEach(group => {
+        group.fields.forEach(field => {
+          const value = cardData.meta[field.name];
+          if (field.required && (value === undefined || value === null || value === '')) {
+            throw new Error(`Missing required field: ${field.name}`);
+          }
+          if (value !== undefined && value !== null) {
+            this.validateFieldValue(`meta.${field.name}`, value, field);
+          }
+        });
       });
-    });
+    }
   }
 
   private validateFieldValue(fieldName: string, value: any, field: FieldDefinition): void {

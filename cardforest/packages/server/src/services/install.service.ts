@@ -167,7 +167,8 @@ export class InstallService {
       console.log('Using date template key:', this.dateTemplateKey);
 
       // Create test user
-      const testUser = await this.userService.createUser('test', await bcrypt.hash('test', 10));
+      const hashedPassword = await bcrypt.hash('test', 10);
+      const testUser = await this.userService.createUser('test', hashedPassword);
       console.log('Created test user:', JSON.stringify(testUser, null, 2));
 
       // Create test card with basic template

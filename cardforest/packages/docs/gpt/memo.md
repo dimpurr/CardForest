@@ -13,6 +13,10 @@
 
 * 系统实现两套认证流程：后端调试认证使用/user/auth/github路径与/user/auth/auth-callback-backend回调，用于开发调试和后端状态查看；前端应用认证通过前端路由处理OAuth回调供实际用户使用。Auth.js(NextAuth升级版)+Apollo+JWT认证流程中，使用hook管理JWT避免服务端操作cookie。Auth.js配置中jwt回调获取并存储backendJwt，session回调传递给前端，不要在jwt回调中读取cookie；CORS配置必须同时设置credentials:true和exposedHeaders:['Set-Cookie']允许跨域cookie，origin需精确匹配前端域名；Apollo Client需设置credentials:'include'确保发送cookie。Web环境需要CSRF、XSS防护，Desktop环境需要本地权限管理，所有环境都需要加密敏感数据。GraphQL mutation必须在resolver层使用@UseGuards(AuthGuard)保护，前端组件需要useSession和useJWT双重确保，Apollo Client的authLink必须在SSR环境下安全处理window对象。AuthGuard需要同时支持从Authorization header和cookies中获取JWT，确保在不同场景下都能正确验证用户身份。使用Auth.js时避免使用Edge Runtime以防止JWT处理问题，确保在jwt回调中正确处理OAuth provider返回的profile信息。Auth.js集成关键点：1)jwt回调必须在token中存储backendJwt(而非直接返回新对象)；2)session回调必须从token读取并传递backendJwt；3)GitHub OAuth profile可能使用sub或id字段作为用户标识，后端需兼容处理；4)Apollo Client的authLink应异步获取session确保JWT最新；5)useJWT hook应通过useEffect响应session变化；6)调试时需记录完整生命周期日志(OAuth回调、JWT生成、Session传递、GraphQL请求)。
 
+## 模板与卡片系统
+* 模板字段验证：基础模板必须使用_inherit_from:'_self'，继承模板使用_inherit_from:templateKey。验证时basic/meta字段分开验证，meta字段在cardData.meta下。createUser需分别传入username和password参数而非对象。模板字段验证时需区分基础字段和元字段位置，避免字段定义和数据结构不匹配。
+* API命名规范：使用my前缀表示当前用户相关查询如myCards而非userCards，使用full后缀表示包含完整关联数据的查询如card/full，需保持命名一致性避免同一概念使用不同名称。模板系统支持从基础模板到特化模板的继承关系，字段定义包含验证规则和UI展示信息，自动处理系统字段。卡片系统包含title/content/body基础字段，使用meta字段存储模板特定数据，通过relations集合管理父子关系。数据关联使用_key而非完整_id路径，GraphQL查询需要通过AQL JOIN获取完整关联对象。
+
 ## GraphQL Mutation 认证与卡片创建体验
 * GraphQL mutation的认证流程需要确保在resolver层使用@UseGuards(AuthGuard)保护，防止未授权的请求。卡片创建体验需要确保在创建卡片时，正确设置卡片的所有者和权限，避免未授权的用户访问或修改卡片。卡片创建流程需要遵循以下步骤：1. 用户输入卡片标题和内容；2. 系统验证用户的身份和权限；3. 系统创建卡片并设置所有者和权限；4. 系统返回卡片的ID和创建成功的消息。
 

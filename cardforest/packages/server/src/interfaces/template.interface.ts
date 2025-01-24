@@ -14,6 +14,7 @@ export interface FieldGroup {
 
 export interface Template {
   _key?: string;
+  _id?: string;
   name: string;
   inherits_from: string[];  // List of templates this template inherits from
   fields: FieldGroup[];     // Fields grouped by their source template
@@ -26,6 +27,7 @@ export interface Template {
 // Helper type for the flattened view used in the GraphQL API
 export interface FlattenedTemplate {
   _key?: string;
+  _id?: string;
   name: string;
   fields: Record<string, FieldDefinition>;  // Flattened fields for backward compatibility
   system: boolean;

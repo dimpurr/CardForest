@@ -36,6 +36,7 @@ type Template {
 
 type FlattenedTemplate {
   _key: ID!
+  _id: ID!
   name: String!
   fields: JSON!
   system: Boolean!

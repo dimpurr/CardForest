@@ -68,6 +68,7 @@ export interface Template {
 
 export interface FlattenedTemplate {
     _key: string;
+    _id: string;
     name: string;
     fields: JSON;
     system: boolean;
