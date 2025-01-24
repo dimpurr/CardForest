@@ -4,6 +4,7 @@ import { CREATE_CARD, UPDATE_CARD } from '@/graphql/mutations/cardMutations';
 import { CardForm } from './CardForm';
 import { Button } from '@/components/ui/Button';
 import { Template } from '@/types/template';
+import { DebugPanel } from '@/components/debug/DebugPanel';
 
 interface CardEditorProps {
   mode?: 'create' | 'edit';
@@ -24,28 +25,30 @@ export function CardEditor({
 
   const handleSubmit = async (data: any) => {
     try {
+      const input = {
+        templateId: template._id,
+        title: data.title || '',
+        content: data.content || '',
+        body: data.body || '',
+        meta: Object.entries(data)
+          .filter(([name]) => !['title', 'content', 'body'].includes(name))
+          .reduce((acc: any, [name, value]) => {
+            acc[name] = value;
+            return acc;
+          }, {})
+      };
+
+      console.log('Submitting card data:', input);
+
       if (mode === 'create') {
         await createCard({
-          variables: {
-            input: {
-              templateId: template._id,
-              fields: Object.entries(data).map(([name, value]) => ({
-                name,
-                value: String(value)
-              }))
-            }
-          }
+          variables: { input }
         });
       } else {
         await updateCard({
           variables: {
             id: card._id,
-            input: {
-              fields: Object.entries(data).map(([name, value]) => ({
-                name,
-                value: String(value)
-              }))
-            }
+            input
           }
         });
       }
