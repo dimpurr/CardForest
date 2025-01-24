@@ -174,6 +174,8 @@ export class CardService {
       const usersCollection = this.db.collection('users');
       const userRef = `${usersCollection.name}/${userId}`;
       
+      console.log('Getting cards for user:', { userId, userRef });
+      
       const query = `
         FOR card IN cards
           FILTER card.createdBy == @userRef
@@ -186,9 +188,14 @@ export class CardService {
             FOR user IN users
               FILTER user._id == card.createdBy
               RETURN {
-                username: user.username
+                _key: user._key,
+                _id: user._id,
+                username: user.username,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt
               }
           )
+          FILTER creator != null
           RETURN MERGE(
             UNSET(card, ['createdBy']),
             { 
@@ -198,10 +205,12 @@ export class CardService {
           )
       `;
       const cursor = await this.db.query(query, { userRef });
-      return cursor.all();
+      const results = await cursor.all();
+      console.log('Found cards:', results.length);
+      return results;
     } catch (error) {
       console.error('Failed to get user cards:', error);
-      return [];
+      throw error; // Let GraphQL handle the error
     }
   }
 

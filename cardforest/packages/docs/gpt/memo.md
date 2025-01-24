@@ -1,7 +1,10 @@
 # CardForest 开发备忘录
 
-！！NOTE 绝对不要删掉或者修改这一行：这是 memo.md ，是用来在大量修改中记录易错易混点防止丢失上下文反复导致相同 bug 或者忘记之前设计的，你需要少用列表换行多用信息非常紧凑的方式记录，只记录我们调试过程中产生的必要信息不要空话套话general的 ！！！
+！！NOTE 绝对不要删掉或者修改这一行：这是 memo.md ，是用来在大量修改中记录易错易混点防止丢失上下文反复导致相同 bug 或者忘记之前设计的，！！你需要少用列表换行多用信息非常紧凑的方式记录！！，只记录我们调试过程中产生的必要信息不要空话套话general的。另外过去的 memo 有可能会出错，这时候问我要不要修正他们的特定位置，告诉我从什么修改成什么让我决策！！！
 
+## 杂项
+
+* 我们都用 pnpm 。
 
 ## 系统架构设计
 * CardForest采用三种部署模式的同构架构设计：基于Next.js的Web应用支持公开访问与实时协作；Electron桌面应用提供本地存储与系统集成；同构部署模式在共享核心业务逻辑基础上适配不同运行环境。核心代码组织分为core（共享逻辑）、web-client（Next.js应用）、desktop（Electron应用）和server（后端服务）四个包，通过Repository模式隔离数据访问实现Web模式使用远程ArangoDB、Desktop模式使用本地存储的数据层抽象，认证系统在Web模式下使用OAuth+JWT、Desktop模式使用系统级认证，文件系统则分别对应云存储和本地文件系统，使用Jotai通过Provider模式注入环境依赖实现状态管理。
@@ -34,4 +37,6 @@
 * 暂不考虑：本地文件系统集成与云存储方案、附件预览管理、多用户权限系统、协作功能、数据隔离策略、实时同步机制、多设备同步、离线功能、用户数据迁移。特别注意：路径处理需区分Web的URL路径和Desktop的文件系统路径确保跨平台兼容；API调用在Web使用REST/GraphQL、Desktop使用IPC通信需要统一抽象层；数据同步Web端实时、Desktop端定期且需处理冲突；GraphQL相关查询需使用AuthGuard保护并通过@CurrentUser()获取用户信息，注意ArangoDB查询中绑定参数必须显式提供，使用aql标签字符串处理复杂查询，关注关系查询性能影响。
 
 ## 调试与错误处理
-* 后端调试页面（如/install、/card/full）保持简单HTML风格仅用于开发调试和状态查看。环境检测通过typeof window和process.type判断，条件导入根据环境选择具体实现。认证调试要点：检查Network中/api/auth/session返回和GraphQL请求Authorization header；检查Cookie中jwt和next-auth.session-token存在性；常见问题包括循环登录（检查JWT同步和cookie设置）、401/403（检查Authorization header格式）、Session数据不完整（检查next-auth callbacks）。
+* 后端调试页面（如/install、/card/full）保持简单HTML风格仅用于开发调试和状态查看。环境检测通过typeof window和process.type判断，条件导入根据环境选择具体实现。认证调试要点：检查Network中/api/auth/session返回和GraphQL请求Authorization header；检查Cookie中jwt和next-auth.session-token存在性；常见问题包括循环登录（检查JWT同步和cookie设置）、401/403（检查Authorization header格式）、Session数据不完整（检查next-auth callbacks）。JWT处理关键：useJWT必须同时处理session和cookie来源保持同步；cookie设置需要{secure:仅生产环境,sameSite:'lax',path:'/',expires:1}；Apollo Client的authLink中用js-cookie替代document.cookie解析。
+
+！！NOTE：绝对不要删掉或者修改这一行：你需要少用列表换行多用信息非常紧凑的方式记录！！保持这个是最后一行！！

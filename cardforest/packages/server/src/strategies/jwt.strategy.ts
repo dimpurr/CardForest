@@ -9,31 +9,33 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private userService: UserService) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
-        // 首先尝试从 Cookie 中获取 JWT
+        // 首先尝试从 Authorization 头部获取
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+        // 然后尝试从 Cookie 中获取
         (request: Request) => {
           const jwt = request?.cookies?.['jwt'];
           if (jwt) {
+            console.log('JWT found in cookie:', jwt);
             return jwt;
           }
-          // 如果 cookie 中没有，再尝试从 Authorization 头部获取
-          const authHeader = request.headers.authorization;
-          if (authHeader && authHeader.split(' ')[0] === 'Bearer') {
-            return authHeader.split(' ')[1];
-          }
+          console.log('No JWT in cookie');
           return null;
         },
       ]),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET,
+      secretOrKey: process.env.JWT_SECRET || 'your-secret-key',
     });
   }
 
   async validate(payload: any) {
     try {
+      console.log('Validating JWT payload:', payload);
       const user = await this.userService.findUserByUsername(payload.username);
       if (!user) {
+        console.log('User not found:', payload.username);
         return null;
       }
+      console.log('User validated:', user.username);
       return user;
     } catch (error) {
       console.error('JWT validation error:', error);

@@ -1,65 +1,50 @@
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
+import Cookies from 'js-cookie';
 
-export function useJWT() {
-  const { data: session } = useSession();
-  const [jwt, setJwt] = useState<string | null>(() => {
-    // 初始化时从 cookie 获取 JWT
-    if (typeof window !== 'undefined') {
-      const cookieJwt = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('jwt='))
-        ?.split('=')[1] || null;
-      console.log('useJWT init:', { cookieJwt });
-      return cookieJwt;
-    }
-    return null;
-  });
+const COOKIE_OPTIONS = {
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax' as const,
+  path: '/',
+  expires: 1 // 1 day
+}
+
+export const useJWT = () => {
+  const { data: session, status } = useSession();
+  const [jwt, setJwt] = useState<string | null>(null);
 
   useEffect(() => {
-    // 从 cookie 中获取 JWT
-    const getJwtFromCookie = () => {
-      if (typeof window === 'undefined') return null;
-      
-      // 直接查找 jwt cookie
-      const jwtCookie = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('jwt='))
-        ?.split('=')[1];
-
-      console.log('useJWT getJwtFromCookie:', { 
-        jwtCookie,
-        allCookies: document.cookie.split('; ').reduce((acc, cookie) => {
-          const [key, value] = cookie.split('=');
-          acc[key] = value;
-          return acc;
-        }, {} as Record<string, string>)
-      });
-      
-      return jwtCookie;
-    };
-
-    // 优先使用 session 中的 JWT，如果没有则从 cookie 中获取
-    const currentJwt = session?.jwt || getJwtFromCookie();
-    console.log('useJWT effect:', { 
-      sessionJwt: session?.jwt, 
-      cookieJwt: getJwtFromCookie(), 
-      currentJwt,
-      sessionData: session
+    // First try to get JWT from session
+    const sessionJwt = session?.jwt as string | undefined;
+    
+    // Then try to get JWT from cookies
+    const cookieJwt = Cookies.get('jwt');
+    
+    console.log('JWT sources:', { 
+      sessionJwt: sessionJwt ? 'present' : 'absent',
+      cookieJwt: cookieJwt ? 'present' : 'absent',
+      status 
     });
 
-    if (currentJwt) {
-      // 设置 JWT cookie
-      const cookieOptions = {
-        expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-        path: '/',
-      };
-      document.cookie = `jwt=${currentJwt}; path=${cookieOptions.path}; expires=${cookieOptions.expires.toUTCString()}`;
-      setJwt(currentJwt);
+    if (sessionJwt) {
+      console.log('Using JWT from session');
+      setJwt(sessionJwt);
+      // Also update cookie
+      Cookies.set('jwt', sessionJwt, COOKIE_OPTIONS);
+    } else if (cookieJwt) {
+      console.log('Using JWT from cookie');
+      setJwt(cookieJwt);
     } else {
+      console.log('No JWT found');
       setJwt(null);
+      // Clean up any existing cookie
+      Cookies.remove('jwt', { path: '/' });
     }
-  }, [session]);
+  }, [session, status]);
 
-  return jwt;
-}
+  return {
+    jwt,
+    hasJwt: !!jwt,
+    status
+  };
+};
