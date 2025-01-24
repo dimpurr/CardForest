@@ -20,7 +20,11 @@ export class CardResolver {
   @Query()
   @UseGuards(JwtAuthGuard)
   async myCards(@Context() context) {
-    return this.cardService.getCardsByUserId(context.req.user.userId);
+    const user = context.req.user;
+    if (!user || !user._key) {
+      throw new Error('User not authenticated');
+    }
+    return this.cardService.getCardsByUserId(user._key);
   }
 
   @Mutation()
