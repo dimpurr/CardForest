@@ -2,6 +2,8 @@
 
 ## 相关文档
 
+重要！！干任何事情之前必读 cardforest/packages/docs/gpt/memo.md
+
 ### 设计文档
 - 卡片内容与关系设计: `/packages/docs/src/guide/card_content_and_relations.md`
 - 技术架构概览: `/packages/docs/src/tech/architecture.md`
@@ -57,10 +59,6 @@
     - [ ] 基础字段区域（title/body/content）
     - [ ] Meta区域按模板来源分组
     - [ ] 字段来源标签
-- [ ] 优化编辑体验
-  - [ ] 字段验证和错误提示
-  - [ ] 实时保存
-  - [ ] 历史记录
 
 ### 2. 前端：UI 组件库
 - [x] 基础组件迁移到 Radix UI
@@ -69,47 +67,105 @@
   - [x] DatePicker 组件
   - [x] Calendar 组件
   - [x] Popover 组件
-- [ ] 主题系统
-  - [ ] 定义主题变量
-  - [ ] 实现暗色模式
-  - [ ] 支持自定义主题
-- [ ] 动画效果
-  - [ ] 页面转场动画
-  - [ ] 组件交互动画
-  - [ ] 加载状态动画
 
-### 3. 前端：用户界面优化
-- [ ] 改进导航体验
-  - [ ] 面包屑导航
-  - [ ] 快捷操作菜单
-- [ ] 添加搜索功能
-  - [ ] 卡片搜索
-  - [ ] 模板搜索
-- [ ] 实现批量操作
-  - [ ] 多选功能
-  - [ ] 批量编辑/删除
 
-## 下一步计划
+### 4. 前端：模板管理系统
+#### 1.1 模板列表页面
+- [x] 创建模板列表组件
+  - [x] 显示所有可用模板
+  - [x] 显示模板继承关系
+  - [ ] 支持模板搜索和筛选
+  - [x] 模板预览功能
 
-1. 实现字段系统
-   - 开发字段类型注册机制
-   - 创建内置字段类型
-   - 实现字段验证和配置
+#### 1.2 模板编辑器
+- [ ] 创建模板编辑器组件
+  - [ ] 基本信息编辑（名称、描述）
+  - [ ] 字段管理
+    - [ ] 添加/删除字段
+    - [ ] 字段类型选择
+    - [ ] 字段属性配置（必填、默认值等）
+  - [ ] 继承关系管理
+    - [ ] 选择父模板
+    - [ ] 预览继承的字段
+    - [ ] 字段覆盖配置
 
-2. 完善模板继承系统
-   - 实现基础模板和系统模板
-   - 添加用户自定义模板支持
-   - 处理字段继承规则
+#### 1.3 GraphQL 集成
+- [x] 添加必要的 GraphQL 查询
+  - [x] 获取模板列表
+  - [x] 获取单个模板详情
+  - [x] 获取模板继承链
+- [ ] 添加模板相关的 mutations
+  - [ ] 创建模板
+  - [ ] 更新模板
+  - [ ] 删除模板
 
-3. 开发编辑器组件
-   - 实现动态表单生成
-   - 创建模板编辑器
-   - 添加字段预览功能
+#### 1.4 状态管理
+- [x] 使用 Jotai 管理模板状态
+  - [x] 模板列表状态
+  - [x] 当前编辑模板状态
+  - [ ] 模板验证状态
 
-4. 改进用户体验
-   - 优化编辑界面
-   - 添加实时预览
-   - 完善错误处理
+#### 1.5 用户界面优化
+- [x] 实现响应式设计
+- [ ] 添加加载状态和错误处理
+- [ ] 添加用户提示和引导
+- [ ] 实现拖拽排序字段
+
+### 当前开发重点：模板创建功能
+1. 创建新模板页面
+   - [x] 实现基本的模板创建表单
+   - [x] 添加字段编辑器组件
+   - [x] 实现父模板选择器
+   - [ ] 添加字段验证逻辑
+
+2. GraphQL Mutations
+   - [x] 定义创建模板 mutation
+   - [ ] 添加字段验证
+   - [x] 处理继承关系
+   - [ ] 错误处理和用户反馈
+
+3. 组件开发
+   - [x] FieldEditor 组件
+   - [x] TemplateInheritanceSelector 组件
+   - [ ] FieldPreview 组件
+   - [ ] ValidationFeedback 组件
+
+### 下一步任务
+1. 字段验证
+   - [ ] 前端字段验证逻辑
+   - [ ] 后端字段验证增强
+   - [ ] 错误提示优化
+
+2. UI/UX 改进
+   - [ ] 添加加载状态
+   - [ ] 优化错误处理
+   - [ ] 添加成功提示
+   - [ ] 字段拖拽排序
+
+3. 模板预览
+   - [ ] 实现预览组件
+   - [ ] 显示继承字段
+   - [ ] 添加示例数据
+
+## 开发计划
+
+1. 模板列表页面（/templates）：
+   - 路由：pages/templates/index.tsx
+   - 组件：components/template/TemplateList.tsx, TemplateCard.tsx
+   - 状态：atoms/templateAtoms.ts (templateListAtom, selectedTemplateAtom)
+   - GraphQL：queries/templateQueries.ts (GET_TEMPLATES, GET_TEMPLATE_WITH_INHERITANCE)
+
+2. 模板编辑器（/templates/[id]/edit）：
+   - 路由：pages/templates/[id]/edit.tsx
+   - 组件：components/template/TemplateEditor/, FieldEditor/, InheritanceManager/
+   - Hook：hooks/useTemplate.ts (处理模板CRUD、字段管理、继承关系)
+   - 状态：atoms/templateEditorAtoms.ts (editingTemplateAtom, fieldGroupsAtom)
+
+3. 开发顺序：
+   1. 基础模板列表 -> 查看详情 -> 简单创建
+   2. 字段编辑器 -> 字段验证 -> 字段预览
+   3. 继承选择器 -> 继承链展示 -> 字段覆盖
+   4. UI优化 -> 拖拽排序 -> 响应式
 
 ## 技术实现要点
 
@@ -151,30 +207,3 @@
 #### 特定功能组件
 1. **编辑器相关**
    - TipTap：富文本编辑器，支持协同编辑
-   - React Flow：关系图可视化
-   - React DnD：拖拽功能
-   - CodeMirror：代码编辑器
-
-2. **布局组件**
-   - react-resizable-panels：可调整大小的面板
-   - react-grid-layout：网格布局系统
-   - Floating UI：弹出层定位
-
-### 开发工具
-- **类型检查**: TypeScript
-- **构建工具**: Vite
-- **测试**: Vitest + Testing Library
-- **代码规范**: ESLint + Prettier
-- **包管理**: pnpm
-
-### 性能优化
-- React Suspense 和 lazy loading
-- 图片懒加载和优化
-- Service Worker 缓存
-
-这个技术栈的优势：
-1. 高度可定制性：可以完全控制 UI 外观
-2. 优秀的可访问性：符合 ARIA 标准
-3. 良好的开发体验：TypeScript 支持和开发工具
-4. 性能优化：支持代码分割和懒加载
-5. 社区支持：活跃的社区和丰富的资源
