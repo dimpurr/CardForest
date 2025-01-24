@@ -89,3 +89,54 @@
    - 添加加载状态提示
    - 实现错误处理和提示
    - 优化响应式布局
+
+## 前端技术选型建议
+
+### 已确定技术栈
+- **状态管理**: Jotai
+  - 适合原子化的状态管理
+  - 支持异步状态和派生状态
+  - 与 React Suspense 完美配合
+- **样式方案**: 
+  - Tailwind CSS：原子化 CSS
+  - Sass：自定义样式和主题
+
+### 建议的 UI 组件库
+
+#### 主要方案：Radix UI
+- 提供无样式但可访问的基础组件
+- 完全可定制的外观
+- 优秀的键盘导航和屏幕阅读器支持
+- 适合构建自定义设计系统
+- 与 Tailwind 完美配合
+
+#### 特定功能组件
+1. **编辑器相关**
+   - TipTap：富文本编辑器，支持协同编辑
+   - React Flow：关系图可视化
+   - React DnD：拖拽功能
+   - CodeMirror：代码编辑器
+
+2. **布局组件**
+   - react-resizable-panels：可调整大小的面板
+   - react-grid-layout：网格布局系统
+   - Floating UI：弹出层定位
+
+### 开发工具
+- **类型检查**: TypeScript
+- **构建工具**: Vite
+- **测试**: Vitest + Testing Library
+- **代码规范**: ESLint + Prettier
+- **包管理**: pnpm
+
+### 性能优化
+- React Suspense 和 lazy loading
+- 图片懒加载和优化
+- Service Worker 缓存
+
+这个技术栈的优势：
+1. 高度可定制性：可以完全控制 UI 外观
+2. 优秀的可访问性：符合 ARIA 标准
+3. 良好的开发体验：TypeScript 支持和开发工具
+4. 性能优化：支持代码分割和懒加载
+5. 社区支持：活跃的社区和丰富的资源

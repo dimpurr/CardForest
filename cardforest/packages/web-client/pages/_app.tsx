@@ -1,8 +1,9 @@
 import { SessionProvider } from 'next-auth/react';
 import { ApolloProvider } from '@apollo/client';
-import { ChakraProvider } from '@chakra-ui/react';
+import { Provider as JotaiProvider } from 'jotai';
 import { client } from '../lib/apollo-client';
 import type { AppProps } from 'next/app';
+import '../styles/globals.scss';
 
 export default function App({
   Component,
@@ -11,9 +12,9 @@ export default function App({
   return (
     <SessionProvider session={session}>
       <ApolloProvider client={client}>
-        <ChakraProvider>
+        <JotaiProvider>
           <Component {...pageProps} />
-        </ChakraProvider>
+        </JotaiProvider>
       </ApolloProvider>
     </SessionProvider>
   );

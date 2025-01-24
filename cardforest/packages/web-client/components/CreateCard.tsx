@@ -1,22 +1,16 @@
 import { useState } from 'react';
 import { gql, useMutation } from '@apollo/client';
+import { Button } from './ui/Button';
+import { Input } from './ui/Input';
+import { Textarea } from './ui/Textarea';
 import {
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  Textarea,
-  VStack,
-  useToast,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  useDisclosure,
-} from '@chakra-ui/react';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogTrigger,
+} from './ui/Dialog';
 
 const CREATE_CARD = gql`
   mutation CreateCard($input: CreateCardInput!) {
@@ -33,49 +27,32 @@ const CREATE_CARD = gql`
 `;
 
 export default function CreateCard({ onCardCreated }: { onCardCreated?: () => void }) {
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const toast = useToast();
+  const [error, setError] = useState<string | null>(null);
 
   const [createCard, { loading }] = useMutation(CREATE_CARD, {
     onCompleted: () => {
-      toast({
-        title: 'Card created successfully',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
       setTitle('');
       setContent('');
-      onClose();
+      setOpen(false);
       if (onCardCreated) {
         onCardCreated();
       }
     },
     onError: (error) => {
-      toast({
-        title: 'Error creating card',
-        description: error.message,
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
+      setError(error.message);
     },
   });
 
   const handleSubmit = async () => {
     if (!title.trim() || !content.trim()) {
-      toast({
-        title: 'Error',
-        description: 'Title and content are required',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+      setError('Title and content are required');
       return;
     }
 
+    setError(null);
     await createCard({
       variables: {
         input: {
@@ -87,52 +64,68 @@ export default function CreateCard({ onCardCreated }: { onCardCreated?: () => vo
   };
 
   return (
-    <>
-      <Button colorScheme="blue" onClick={onOpen}>
-        Create New Card
-      </Button>
-
-      <Modal isOpen={isOpen} onClose={onClose}>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Create New Card</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            <VStack spacing={4}>
-              <FormControl isRequired>
-                <FormLabel>Title</FormLabel>
-                <Input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Enter card title"
-                />
-              </FormControl>
-              <FormControl isRequired>
-                <FormLabel>Content</FormLabel>
-                <Textarea
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder="Enter card content"
-                  rows={4}
-                />
-              </FormControl>
-            </VStack>
-          </ModalBody>
-
-          <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={onClose}>
-              Cancel
-            </Button>
-            <Button
-              colorScheme="blue"
-              onClick={handleSubmit}
-              isLoading={loading}
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="primary">Create New Card</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create New Card</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          {error && (
+            <div className="text-sm text-red-500 mb-4">
+              {error}
+            </div>
+          )}
+          <div className="space-y-2">
+            <label
+              htmlFor="title"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-              Create
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-    </>
+              Title
+            </label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Enter card title"
+              error={error && !title.trim()}
+            />
+          </div>
+          <div className="space-y-2">
+            <label
+              htmlFor="content"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Content
+            </label>
+            <Textarea
+              id="content"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Enter card content"
+              error={error && !content.trim()}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button
+            variant="secondary"
+            onClick={() => setOpen(false)}
+            disabled={loading}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleSubmit}
+            disabled={loading}
+          >
+            {loading ? 'Creating...' : 'Create'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
