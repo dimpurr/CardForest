@@ -42,7 +42,7 @@ ts-node scripts/generate-typings.ts
 yarn start:dev
 ```
 
-Access the server at: http://127.0.0.1:3000/
+Access the server at: http://127.0.0.1:3030/
 
 ### ArangoDB
 

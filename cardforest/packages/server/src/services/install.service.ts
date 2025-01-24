@@ -43,32 +43,38 @@ export class InstallService {
   async createDefaultCards(): Promise<void> {
     try {
       // Get admin user ID first
-      const adminUser = await this.userService.getUserByUsername('admin');
+      const adminUser = await this.userService.findUserByUsername('admin');
       if (!adminUser) {
         throw new Error('Admin user not found');
       }
       const adminId = adminUser._id;
 
-      const card1Id = await this.cardService.createCard(
+      const card1 = await this.cardService.createCard(
         'Hello',
         'This is the default 1',
-        'admin',
+        adminId,
       );
-      const card2Id = await this.cardService.createCard(
+      const card2 = await this.cardService.createCard(
         'Card 2',
         'Content for card 2',
-        'admin',
+        adminId,
       );
-      const card3Id = await this.cardService.createCard(
+      const card3 = await this.cardService.createCard(
         'Card 3',
         'Content for card 3',
-        'admin',
+        adminId,
       );
-      const card4Id = await this.cardService.createCard(
+      const card4 = await this.cardService.createCard(
         'Card 4',
         'Content for card 4',
-        'admin',
+        adminId,
       );
+
+      // Extract card IDs from the returned card objects
+      const card1Id = card1._key;
+      const card2Id = card2._key;
+      const card3Id = card3._key;
+      const card4Id = card4._key;
 
       // 建立卡片之间的 child 关系
       await this.cardService.createRelation(card1Id, card2Id, adminId);
@@ -78,6 +84,7 @@ export class InstallService {
       await this.cardService.createRelation(card4Id, card3Id, adminId);
     } catch (error) {
       console.error('Failed to create default cards and relations:', error);
+      throw error; // Re-throw the error to properly handle it in the install method
     }
   }
 }

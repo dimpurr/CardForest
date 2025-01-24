@@ -20,20 +20,21 @@ export class ArangoDBService {
         password: arangoDBPassword,
       },
     });
-
-    // 保存指向特定数据库的实例
-    this.db = this.db.database(this.databaseName);
   }
 
   async createDatabase(): Promise<void> {
     try {
+      const systemDb = this.db.database('_system');
       const exists = await this.databaseExists();
       if (!exists) {
-        await this.db.createDatabase(this.databaseName);
+        await systemDb.createDatabase(this.databaseName);
         console.log(`Created database: ${this.databaseName}`);
       }
+      // 创建后切换到新数据库
+      this.db = this.db.database(this.databaseName);
     } catch (error) {
       console.error('Failed to create or use database:', error);
+      throw error;
     }
   }
 
@@ -107,8 +108,9 @@ export class ArangoDBService {
 
   private async databaseExists(): Promise<boolean> {
     try {
-      const databases = await this.db.listUserDatabases();
-      return databases.some((database) => database === this.databaseName);
+      const systemDb = this.db.database('_system');
+      const databases = await systemDb.listDatabases();
+      return databases.includes(this.databaseName);
     } catch (error) {
       console.error('Failed to check database existence:', error);
       return false;
