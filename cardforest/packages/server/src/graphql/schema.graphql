@@ -38,7 +38,7 @@ type FlattenedTemplate {
   _key: ID!
   _id: ID!
   name: String!
-  fields: JSON!
+  fields: [FieldGroup!]!
   system: Boolean!
   createdAt: String!
   updatedAt: String
@@ -88,6 +88,14 @@ input UpdateTemplateInput {
   fields: [FieldGroupInput!]
 }
 
+input CreateCardInput {
+  templateId: ID!
+  title: String!
+  content: String
+  body: String
+  meta: JSON
+}
+
 type Query {
   # User related
   me: User
@@ -118,13 +126,7 @@ type Mutation {
   deleteTemplate(id: ID!): Boolean!
 
   # Card related
-  createCard(
-    templateId: ID!
-    title: String!
-    content: String
-    body: String
-    meta: JSON
-  ): Card!
+  createCard(input: CreateCardInput!): Card!
   updateCard(
     id: ID!
     title: String

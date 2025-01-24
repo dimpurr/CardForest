@@ -4,7 +4,7 @@ import { TemplateService } from './template.service';
 import { Database } from 'arangojs';
 
 interface CreateCardDto {
-  template: string;
+  templateId: string;
   title: string;
   content?: string;
   body?: string;
@@ -38,8 +38,8 @@ export class CardService {
       console.log('User data:', user);
 
       // Validate input fields
-      if (!input.template || typeof input.template !== 'string') {
-        throw new Error('Invalid card data: template is required and must be a string');
+      if (!input.templateId || typeof input.templateId !== 'string') {
+        throw new Error('Invalid card data: templateId is required and must be a string');
       }
       if (!input.title || typeof input.title !== 'string') {
         throw new Error('Invalid card data: title is required and must be a string');
@@ -58,9 +58,9 @@ export class CardService {
       const cardsCollection = this.db.collection('cards');
 
       // Get template for validation
-      const template = await this.templateService.getFullTemplateById(input.template);
+      const template = await this.templateService.getFullTemplateById(input.templateId);
       if (!template) {
-        throw new Error(`Template ${input.template} not found`);
+        throw new Error(`Template ${input.templateId} not found`);
       }
 
       // Prepare card data for validation
@@ -77,7 +77,7 @@ export class CardService {
 
       const now = new Date().toISOString();
       const cardDoc = {
-        template: input.template,
+        templateId: input.templateId,
         title: input.title,
         content: input.content || '',
         body: input.body || '',
@@ -117,7 +117,7 @@ export class CardService {
           FILTER card._key == @cardId
           LET template = FIRST(
             FOR t IN templates
-              FILTER t._key == card.template
+              FILTER t._key == card.templateId
               RETURN t
           )
           LET creator = FIRST(
@@ -153,7 +153,7 @@ export class CardService {
         FOR card IN cards
           LET template = FIRST(
             FOR t IN templates
-              FILTER t._key == card.template
+              FILTER t._key == card.templateId
               RETURN t
           )
           LET creator = FIRST(
@@ -191,7 +191,7 @@ export class CardService {
           FILTER card.createdBy == null || card.createdBy == @userRef
           LET template = FIRST(
             FOR t IN templates
-              FILTER t._key == card.template
+              FILTER t._key == card.templateId
               RETURN t
           )
           LET creator = FIRST(
@@ -242,7 +242,7 @@ export class CardService {
       // 验证更新数据
       if (updates.meta) {
         console.log('Card data before validation:', {
-          template: card.template._key,
+          templateId: card.template._key,
           title: card.title,
           content: card.content,
           body: card.body,
@@ -301,7 +301,7 @@ export class CardService {
         FOR card IN cards
           LET template = FIRST(
             FOR t IN templates
-              FILTER t._key == card.template
+              FILTER t._key == card.templateId
               RETURN t
           )
           LET creator = FIRST(

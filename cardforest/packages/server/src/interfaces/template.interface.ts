@@ -29,7 +29,7 @@ export interface FlattenedTemplate {
   _key?: string;
   _id?: string;
   name: string;
-  fields: Record<string, FieldDefinition>;  // Flattened fields for backward compatibility
+  fields: FieldGroup[];  // Changed from Record<string, FieldDefinition> to FieldGroup[]
   system: boolean;
   createdAt: string;
   updatedAt?: string;

@@ -173,8 +173,8 @@ export class InstallService {
 
       // Create test card with basic template
       const basicCardData = {
-        template: this.basicTemplateKey,
-        title: 'Test Card',
+        templateId: this.basicTemplateKey,
+        title: 'Test Basic Card',
         body: 'This is a test card',
         content: '<p>This is a rich text content</p>',
         meta: {},
@@ -184,7 +184,7 @@ export class InstallService {
 
       // Create test card with date template
       const dateCardData = {
-        template: this.dateTemplateKey,
+        templateId: this.dateTemplateKey,
         title: 'Test Date Card',
         body: 'This is a test card with date fields',
         content: '<p>This is a rich text content for date card</p>',
@@ -224,7 +224,7 @@ export class InstallService {
   async createDefaultCard(userId: string): Promise<void> {
     await this.cardService.createCard(
       {
-        template: this.basicTemplateKey,
+        templateId: this.basicTemplateKey,
         title: 'Welcome to CardForest',
         content: '<p>This is your first card!</p>',
         body: 'Welcome to CardForest. This is your first card.',
@@ -237,28 +237,21 @@ export class InstallService {
   async createDefaultCards(userId: string): Promise<void> {
     const cards = [
       {
-        template: this.basicTemplateKey,
+        templateId: this.basicTemplateKey,
         title: 'Getting Started',
         content: '<p>Learn how to use CardForest</p>',
-        body: 'This card will help you get started with CardForest.',
+        body: 'Start here to learn the basics of CardForest.',
         meta: {},
       },
       {
-        template: this.basicTemplateKey,
-        title: 'Features',
-        content: '<p>Explore CardForest features</p>',
-        body: 'Discover all the amazing features CardForest has to offer.',
-        meta: {},
-      },
-      {
-        template: this.basicTemplateKey,
+        templateId: this.basicTemplateKey,
         title: 'Templates',
-        content: '<p>Use templates to organize your cards</p>',
-        body: 'Templates help you organize your cards and maintain consistency.',
+        content: '<p>Create your own templates</p>',
+        body: 'Templates help you organize your cards consistently.',
         meta: {},
       },
       {
-        template: this.basicTemplateKey,
+        templateId: this.basicTemplateKey,
         title: 'Relations',
         content: '<p>Connect your cards</p>',
         body: 'Create relations between cards to build a knowledge network.',

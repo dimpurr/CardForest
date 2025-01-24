@@ -41,7 +41,7 @@ export class TemplateService {
 
   async getTemplateById(id: string): Promise<FlattenedTemplate> {
     try {
-      const template = await this.getFullTemplateById(id);
+      const template = await this.getTemplateWithInheritance(id);
       if (!template) {
         throw new Error('Template not found');
       }
@@ -98,20 +98,11 @@ export class TemplateService {
   }
 
   flattenTemplate(template: Template): FlattenedTemplate {
-    const flattenedFields: Record<string, FieldDefinition> = {};
-    
-    // Flatten fields from all groups
-    template.fields.forEach(group => {
-      group.fields.forEach(field => {
-        flattenedFields[field.name] = field;
-      });
-    });
-
     return {
       _key: template._key,
       _id: template._id,
       name: template.name,
-      fields: flattenedFields,
+      fields: template.fields,
       system: template.system,
       createdAt: template.createdAt,
       updatedAt: template.updatedAt,

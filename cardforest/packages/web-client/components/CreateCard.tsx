@@ -83,7 +83,7 @@ export default function CreateCard({ onCardCreated }: { onCardCreated?: () => vo
           title: cardData.title.trim(),
           content: cardData.content?.trim() || '',
           body: cardData.body?.trim() || '',
-          template: selectedTemplate,
+          templateId: selectedTemplate,
           meta: cardData.meta || {},
         },
       },

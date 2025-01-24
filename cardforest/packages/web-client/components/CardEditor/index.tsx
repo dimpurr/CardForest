@@ -76,6 +76,11 @@ export function CardEditor({ templateId, initialData, onChange }: CardEditorProp
     group._inherit_from === 'basic' || group._inherit_from === '_self'
   )?.fields || [];
 
+  // Find meta fields groups (all except basic)
+  const metaGroups = template.fields.filter(group => 
+    group._inherit_from !== 'basic' && group._inherit_from !== '_self'
+  );
+
   return (
     <div className="space-y-4">
       {/* Basic Fields Section */}
@@ -105,33 +110,19 @@ export function CardEditor({ templateId, initialData, onChange }: CardEditorProp
       </div>
 
       {/* Meta Fields Section */}
-      {template.fields.length > 1 && (
-        <div>
-          <label className="block text-sm font-medium mb-2">Meta Fields</label>
-          <div className="space-y-4">
-            {template.fields
-              .filter(group => group._inherit_from !== 'basic' && group._inherit_from !== '_self')
-              .map(group => (
-                <div key={group._inherit_from} className="p-4 bg-background dark:bg-background border rounded-lg">
-                  <h3 className="text-sm font-medium mb-3 capitalize">
-                    {group._inherit_from === '_self' ? 'Custom Fields' : `From ${group._inherit_from}`}
-                  </h3>
-                  <div className="space-y-3">
-                    {group.fields.map(field => (
-                      <MetaField
-                        key={field.name}
-                        name={field.name}
-                        field={field}
-                        value={formData.meta[field.name]}
-                        onChange={(value) => handleMetaChange(field.name, value)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-          </div>
+      {metaGroups.map(group => (
+        <div key={group._inherit_from} className="space-y-4">
+          <h3 className="font-medium text-lg capitalize">{group._inherit_from} Fields</h3>
+          {group.fields.map(field => (
+            <MetaField
+              key={field.name}
+              field={field}
+              value={formData.meta?.[field.name]}
+              onChange={value => handleMetaChange(field.name, value)}
+            />
+          ))}
         </div>
-      )}
+      ))}
     </div>
   );
 }

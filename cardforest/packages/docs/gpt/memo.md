@@ -29,6 +29,8 @@
 ## 模板系统
 
 * 模板继承采用原型链机制：festival_date_card -> datecard -> basic_card，字段按来源分组存储，每组用_inherit_from标记来源模板。编辑器中title/body/content在顶部，meta区域按模板来源分组显示。字段存储格式：{name:"festival_date_card", inherits_from:["datecard"], fields:[{_inherit_from:"basic_card",fields:[{name:"title",type:"text"}]},{_inherit_from:"datecard",fields:[{name:"start_date",type:"date"}]},{_inherit_from:"_self",fields:[{name:"origin",type:"text"}]}]}。GraphQL返回扁平化字段用flattenedFields保持兼容。
+* 模板字段设计关键点：(1)Template和FlattenedTemplate的fields类型必须保持一致，统一用FieldGroup[]数组结构，避免使用Record<string,FieldDefinition>以防前后端不一致；(2)字段分组用_inherit_from区分基础字段(basic/_self)和meta字段；(3)GraphQL schema中不要用JSON类型表示复杂结构，应该完整定义字段类型以获得类型检查；(4)前端根据_inherit_from渲染不同区域，basic字段和meta字段分开展示。
+* 模板继承实现注意点：(1)所有获取模板的接口都要处理继承关系，包括getTemplateById；(2)继承处理通过getTemplateWithInheritance方法合并所有父模板的字段；(3)字段合并时保持_inherit_from标记以便前端区分字段来源；(4)GraphQL查询需要包含完整的字段结构。
 
 ## 经验教训
 

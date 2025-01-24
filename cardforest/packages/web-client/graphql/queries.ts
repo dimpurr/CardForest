@@ -30,7 +30,15 @@ export const GET_TEMPLATE_BY_ID = gql`
       _id
       _key
       name
-      fields
+      fields {
+        _inherit_from
+        fields {
+          name
+          type
+          required
+          config
+        }
+      }
       createdAt
       updatedAt
     }

@@ -33,6 +33,14 @@ export interface UpdateTemplateInput {
     fields?: Nullable<FieldGroupInput[]>;
 }
 
+export interface CreateCardInput {
+    templateId: string;
+    title: string;
+    content?: Nullable<string>;
+    body?: Nullable<string>;
+    meta?: Nullable<JSON>;
+}
+
 export interface User {
     _key: string;
     _id: string;
@@ -70,7 +78,7 @@ export interface FlattenedTemplate {
     _key: string;
     _id: string;
     name: string;
-    fields: JSON;
+    fields: FieldGroup[];
     system: boolean;
     createdAt: string;
     updatedAt?: Nullable<string>;
@@ -115,7 +123,7 @@ export interface IMutation {
     createTemplate(input: CreateTemplateInput): Template | Promise<Template>;
     updateTemplate(id: string, input: UpdateTemplateInput): Template | Promise<Template>;
     deleteTemplate(id: string): boolean | Promise<boolean>;
-    createCard(templateId: string, title: string, content?: Nullable<string>, body?: Nullable<string>, meta?: Nullable<JSON>): Card | Promise<Card>;
+    createCard(input: CreateCardInput): Card | Promise<Card>;
     updateCard(id: string, title?: Nullable<string>, content?: Nullable<string>, body?: Nullable<string>, meta?: Nullable<JSON>): Card | Promise<Card>;
     deleteCard(id: string): boolean | Promise<boolean>;
     createRelation(fromCardId: string, toCardId: string): boolean | Promise<boolean>;
