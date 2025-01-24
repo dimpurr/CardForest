@@ -18,9 +18,9 @@ export class CardResolver {
     return this.cardService.getCards();
   }
 
-  @Query('userCards')
+  @Query('myCards')
   @UseGuards(AuthGuard)
-  async getUserCards(@CurrentUser() userId: string) {
+  async getMyCards(@CurrentUser() userId: string) {
     return this.cardService.getCardsByUserId(userId);
   }
 

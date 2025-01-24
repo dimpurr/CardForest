@@ -78,7 +78,7 @@ export interface IQuery {
     users(): User[] | Promise<User[]>;
     card(id: string): Nullable<Card> | Promise<Nullable<Card>>;
     cards(): Card[] | Promise<Card[]>;
-    userCards(): Card[] | Promise<Card[]>;
+    myCards(): Card[] | Promise<Card[]>;
     cardsWithRelations(): CardWithRelations[] | Promise<CardWithRelations[]>;
     template(id: string): Nullable<Template> | Promise<Nullable<Template>>;
     templates(): Template[] | Promise<Template[]>;

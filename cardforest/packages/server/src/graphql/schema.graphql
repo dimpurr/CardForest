@@ -47,7 +47,7 @@ type Query {
   # 卡片相关
   card(id: ID!): Card
   cards: [Card!]!
-  userCards: [Card!]!
+  myCards: [Card!]!
   cardsWithRelations: [CardWithRelations!]!
 
   # 模板相关
