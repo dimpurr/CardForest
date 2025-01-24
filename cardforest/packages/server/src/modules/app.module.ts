@@ -21,6 +21,7 @@ import { AuthModule } from './auth.module';
 import { CardController } from 'src/controllers/card.controller';
 import { AuthController } from '../controllers/auth.controller';
 import { InstallController } from '../controllers/install.controller';
+import { TemplateController } from '../controllers/template.controller';
 
 @Module({
   imports: [
@@ -82,7 +83,7 @@ import { InstallController } from '../controllers/install.controller';
     DatabaseModule,
     AuthModule,
   ],
-  controllers: [AppController, CardController, AuthController, InstallController],
+  controllers: [AppController, CardController, AuthController, InstallController, TemplateController],
   providers: [
     AppService,
     ArangoDBService,

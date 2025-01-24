@@ -13,17 +13,53 @@ export class TemplateService {
     this.templateCollection = this.db.collection('templates');
   }
 
-  async getTemplates(): Promise<Template[]> {
+  async getTemplates(): Promise<any[]> {
     try {
-      const query = aql`
+      const db = this.arangoDBService.getDatabase();
+      const query = `
         FOR template IN templates
-        RETURN template
+        SORT template.createdAt DESC
+        RETURN {
+          _id: template._id,
+          _key: template._key,
+          name: template.name,
+          createdAt: template.createdAt,
+          updatedAt: template.updatedAt,
+          createdBy: template.createdBy
+        }
       `;
-      const cursor = await this.db.query(query);
-      return cursor.all();
+      const cursor = await db.query(query);
+      const templates = await cursor.all();
+      return templates;
     } catch (error) {
       console.error('Failed to get templates:', error);
-      return [];
+      throw error;
+    }
+  }
+
+  async getTemplatesWithFields(): Promise<any[]> {
+    try {
+      const db = this.arangoDBService.getDatabase();
+      const query = `
+        FOR template IN templates
+        SORT template.createdAt DESC
+        RETURN {
+          _id: template._id,
+          _key: template._key,
+          name: template.name,
+          fields: template.fields,
+          system: template.system,
+          createdAt: template.createdAt,
+          updatedAt: template.updatedAt,
+          createdBy: template.createdBy
+        }
+      `;
+      const cursor = await db.query(query);
+      const templates = await cursor.all();
+      return templates;
+    } catch (error) {
+      console.error('Failed to get templates with fields:', error);
+      throw error;
     }
   }
 
