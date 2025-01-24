@@ -1,5 +1,5 @@
 import { signIn, signOut, useSession } from 'next-auth/react';
-import { useQuery, gql } from '@apollo/client';
+import { useQuery, gql, useMutation, useApolloClient } from '@apollo/client';
 import {
   Box,
   Button,
@@ -9,6 +9,7 @@ import {
   VStack,
   useToast,
 } from '@chakra-ui/react';
+import CreateCard from '../components/CreateCard';
 
 const GET_MY_CARDS = gql`
   query GetMyCards {
@@ -26,7 +27,8 @@ const GET_MY_CARDS = gql`
 
 export default function Home() {
   const { data: session } = useSession();
-  const { loading, error, data } = useQuery(GET_MY_CARDS, {
+  const client = useApolloClient();
+  const { loading, error, data, refetch } = useQuery(GET_MY_CARDS, {
     skip: !session,
   });
   const toast = useToast();
@@ -93,6 +95,14 @@ export default function Home() {
         
         <Box w="100%">
           <Heading size="md" mb={4}>My Cards</Heading>
+          {session && (
+            <Box mb={4}>
+              <CreateCard onCardCreated={() => {
+                // Refetch cards after creation
+                refetch();
+              }} />
+            </Box>
+          )}
           <VStack spacing={4} align="stretch">
             {data?.myCards?.map((card: any) => (
               <Box key={card._id} p={4} borderWidth={1} borderRadius="md">

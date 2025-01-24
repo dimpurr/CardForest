@@ -6,28 +6,25 @@ const httpLink = createHttpLink({
   credentials: 'include',
 });
 
-const authLink = setContext(async (_, { headers }) => {
-  // Get the authentication token from NextAuth.js session if it exists
+const authLink = setContext((_, { headers }) => {
+  // Get the JWT token from cookie
   let token;
   if (typeof window !== 'undefined') {
-    const session = await fetch('/api/auth/session').then(res => res.json());
-    token = session?.accessToken;
+    token = document.cookie.split('; ').find(row => row.startsWith('jwt='))?.split('=')[1];
   }
 
+  // Always include the token in Authorization header if it exists
   return {
     headers: {
       ...headers,
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      Authorization: token ? `Bearer ${token}` : '',
     },
-    credentials: 'include',
   };
 });
 
 export const client = new ApolloClient({
   link: authLink.concat(httpLink),
   cache: new InMemoryCache(),
-  credentials: 'include',
   defaultOptions: {
     watchQuery: {
       fetchPolicy: 'network-only',
