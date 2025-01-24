@@ -8,31 +8,29 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export interface CreateCardInput {
-    template: string;
-    title: string;
-    content?: Nullable<string>;
-    body?: Nullable<string>;
-    meta: JSON;
+export interface FieldDefinitionInput {
+    name: string;
+    type: string;
+    required?: Nullable<boolean>;
+    default?: Nullable<JSON>;
+    config?: Nullable<JSON>;
 }
 
-export interface UpdateCardInput {
-    title?: Nullable<string>;
-    content?: Nullable<string>;
-    body?: Nullable<string>;
-    meta?: Nullable<JSON>;
+export interface FieldGroupInput {
+    _inherit_from: string;
+    fields: FieldDefinitionInput[];
 }
 
 export interface CreateTemplateInput {
     name: string;
-    fields: JSON;
-    parent?: Nullable<string>;
+    inherits_from?: Nullable<string[]>;
+    fields: FieldGroupInput[];
 }
 
 export interface UpdateTemplateInput {
     name?: Nullable<string>;
-    fields?: Nullable<JSON>;
-    parent?: Nullable<string>;
+    inherits_from?: Nullable<string[]>;
+    fields?: Nullable<FieldGroupInput[]>;
 }
 
 export interface User {
@@ -43,15 +41,39 @@ export interface User {
     updatedAt: Date;
 }
 
+export interface FieldDefinition {
+    name: string;
+    type: string;
+    required?: Nullable<boolean>;
+    default?: Nullable<JSON>;
+    config?: Nullable<JSON>;
+}
+
+export interface FieldGroup {
+    _inherit_from: string;
+    fields: FieldDefinition[];
+}
+
 export interface Template {
     _key: string;
     _id: string;
     name: string;
+    inherits_from: string[];
+    fields: FieldGroup[];
+    system: boolean;
+    createdAt: string;
+    updatedAt?: Nullable<string>;
+    createdBy?: Nullable<string>;
+}
+
+export interface FlattenedTemplate {
+    _key: string;
+    name: string;
     fields: JSON;
-    parent?: Nullable<Template>;
-    createdAt: Date;
-    updatedAt: Date;
-    createdBy?: Nullable<User>;
+    system: boolean;
+    createdAt: string;
+    updatedAt?: Nullable<string>;
+    createdBy?: Nullable<string>;
 }
 
 export interface Card {
@@ -80,21 +102,22 @@ export interface IQuery {
     cards(): Card[] | Promise<Card[]>;
     myCards(): Card[] | Promise<Card[]>;
     cardsWithRelations(): CardWithRelations[] | Promise<CardWithRelations[]>;
-    template(id: string): Nullable<Template> | Promise<Nullable<Template>>;
-    templates(): Template[] | Promise<Template[]>;
+    templates(): FlattenedTemplate[] | Promise<FlattenedTemplate[]>;
+    template(id: string): Nullable<FlattenedTemplate> | Promise<Nullable<FlattenedTemplate>>;
+    templateWithInheritance(id: string): Nullable<Template> | Promise<Nullable<Template>>;
     userTemplates(): Template[] | Promise<Template[]>;
 }
 
 export interface IMutation {
-    register(username: string, password: string): User | Promise<User>;
     login(username: string, password: string): string | Promise<string>;
-    createCard(input: CreateCardInput): Card | Promise<Card>;
-    updateCard(id: string, input: UpdateCardInput): Card | Promise<Card>;
-    deleteCard(id: string): boolean | Promise<boolean>;
-    createRelation(fromCardId: string, toCardId: string): boolean | Promise<boolean>;
+    register(username: string, password: string): User | Promise<User>;
     createTemplate(input: CreateTemplateInput): Template | Promise<Template>;
     updateTemplate(id: string, input: UpdateTemplateInput): Template | Promise<Template>;
     deleteTemplate(id: string): boolean | Promise<boolean>;
+    createCard(templateId: string, title: string, content?: Nullable<string>, body?: Nullable<string>, meta?: Nullable<JSON>): Card | Promise<Card>;
+    updateCard(id: string, title?: Nullable<string>, content?: Nullable<string>, body?: Nullable<string>, meta?: Nullable<JSON>): Card | Promise<Card>;
+    deleteCard(id: string): boolean | Promise<boolean>;
+    createRelation(fromCardId: string, toCardId: string): boolean | Promise<boolean>;
 }
 
 export type JSON = any;

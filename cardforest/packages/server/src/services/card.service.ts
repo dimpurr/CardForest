@@ -57,6 +57,12 @@ export class CardService {
 
       const cardsCollection = this.db.collection('cards');
 
+      // Get template for validation
+      const template = await this.templateService.getFullTemplateById(input.template);
+      if (!template) {
+        throw new Error(`Template ${input.template} not found`);
+      }
+
       // Prepare card data for validation
       const cardData = {
         title: input.title,
@@ -67,7 +73,7 @@ export class CardService {
       console.log('Card data prepared for validation:', JSON.stringify(cardData, null, 2));
 
       // Validate against template
-      await this.templateService.validateCardData(input.template, cardData);
+      await this.templateService.validateCardData(template, cardData);
 
       const now = new Date().toISOString();
       const cardDoc = {
@@ -245,7 +251,11 @@ export class CardService {
             ...updates.meta,
           },
         });
-        await this.templateService.validateCardData(card.template._key, {
+        const template = await this.templateService.getFullTemplateById(card.template._key);
+        if (!template) {
+          throw new Error(`Template ${card.template._key} not found`);
+        }
+        await this.templateService.validateCardData(template, {
           ...card,
           meta: {
             ...card.meta,

@@ -5,6 +5,7 @@ import { ArangoDBService } from './arangodb.service';
 import { TemplateService } from './template.service';
 import { Database } from 'arangojs';
 import * as bcrypt from 'bcrypt';
+import { FieldGroup } from '../interfaces/template.interface';
 
 // NOTE: This service is only used for the initial installation of the database.
 
@@ -79,85 +80,84 @@ export class InstallService {
   }
 
   private async createBaseTemplates() {
-    try {
-      console.log('Creating base templates...');
-      
-      // Define basic template fields
-      const basicTemplateFields = {
-        title: {
-          type: 'text',
-          required: true,
-          config: {
-            maxLength: 200,
+    console.log('Creating base templates...');
+
+    // Create basic template
+    const basicTemplateFields: FieldGroup[] = [
+      {
+        _inherit_from: '_self',
+        fields: [
+          {
+            name: 'title',
+            type: 'text',
+            required: true,
+            config: {
+              maxLength: 200,
+            },
           },
-        },
-        body: {
-          type: 'text',
-          required: false,
-          config: {
-            multiline: true,
+          {
+            name: 'body',
+            type: 'text',
+            required: false,
+            config: {
+              multiline: true,
+            },
           },
-        },
-        content: {
-          type: 'richtext',
-          required: false,
-        },
-      };
-      
-      console.log('Basic template fields:', JSON.stringify(basicTemplateFields, null, 2));
-
-      // 创建基础模板
-      const basicTemplate = await this.templateService.createTemplate(
-        'basic',
-        basicTemplateFields,
-        undefined, // 不继承自任何模板
-        undefined, // 系统创建
-      );
-      console.log('Created basic template:', JSON.stringify(basicTemplate, null, 2));
-      this.basicTemplateKey = basicTemplate._key;
-
-      // Define date template fields
-      const dateTemplateFields = {
-        title: {
-          type: 'text',
-          required: true,
-          config: {
-            maxLength: 200,
+          {
+            name: 'content',
+            type: 'richtext',
+            required: false,
           },
-        },
-        date: {
-          type: 'date',
-          required: true,
-        },
-        reminder: {
-          type: 'boolean',
-          required: false,
-          default: false,
-        },
-        priority: {
-          type: 'text',
-          required: false,
-          options: ['low', 'medium', 'high'],
-          default: 'medium',
-        },
-      };
+        ],
+      },
+    ];
 
-      console.log('Date template fields:', JSON.stringify(dateTemplateFields, null, 2));
+    const basicTemplate = await this.templateService.createTemplate(
+      'basic',
+      basicTemplateFields,
+      [],
+    );
+    this.basicTemplateKey = basicTemplate._key;
+    console.log('Created basic template:', basicTemplate._key);
 
-      // 创建日期卡片模板
-      const dateTemplate = await this.templateService.createTemplate(
-        'datecard',
-        dateTemplateFields,
-        undefined,
-        undefined,
-      );
-      console.log('Created date template:', JSON.stringify(dateTemplate, null, 2));
-      this.dateTemplateKey = dateTemplate._key;
+    // Create date template
+    const dateTemplateFields: FieldGroup[] = [
+      {
+        _inherit_from: this.basicTemplateKey,
+        fields: [
+          {
+            name: 'date',
+            type: 'date',
+            required: true,
+          },
+          {
+            name: 'reminder',
+            type: 'boolean',
+            required: false,
+            default: false,
+          },
+          {
+            name: 'priority',
+            type: 'select',
+            required: false,
+            config: {
+              options: ['low', 'medium', 'high'],
+            },
+            default: 'medium',
+          },
+        ],
+      },
+    ];
 
-    } catch (error) {
-      console.error('Failed to create base templates:', error);
-      throw error;
-    }
+    const dateTemplate = await this.templateService.createTemplate(
+      'datecard',
+      dateTemplateFields,
+      [this.basicTemplateKey],
+    );
+    this.dateTemplateKey = dateTemplate._key;
+    console.log('Created date template:', dateTemplate._key);
+
+    console.log('Base templates created successfully');
   }
 
   private async createTestData() {
@@ -167,50 +167,34 @@ export class InstallService {
       console.log('Using date template key:', this.dateTemplateKey);
 
       // Create test user
-      const usersCollection = this.db.collection('users');
-      const user = await usersCollection.save({
-        username: 'test',
-        password: 'test',
-      });
-      console.log('Created test user:', JSON.stringify(user, null, 2));
+      const testUser = await this.userService.createUser('test', await bcrypt.hash('test', 10));
+      console.log('Created test user:', JSON.stringify(testUser, null, 2));
 
-      // Prepare test card data
-      const testCardData = {
+      // Create test card with basic template
+      const basicCardData = {
         template: this.basicTemplateKey,
         title: 'Test Card',
         body: 'This is a test card',
         content: '<p>This is a rich text content</p>',
         meta: {},
       };
-      console.log('Creating test card with data:', JSON.stringify(testCardData, null, 2));
+      console.log('Creating test card with data:', JSON.stringify(basicCardData, null, 2));
+      await this.cardService.createCard(basicCardData, testUser);
 
-      // Create test card
-      const testCard = await this.cardService.createCard(
-        testCardData,
-        user._key
-      );
-      console.log('Created test card:', JSON.stringify(testCard, null, 2));
-
-      // Prepare test date card data
-      const testDateCardData = {
+      // Create test card with date template
+      const dateCardData = {
         template: this.dateTemplateKey,
         title: 'Test Date Card',
-        body: 'This is a test date card',
-        content: '<p>This is a date card content</p>',
+        body: 'This is a test card with date fields',
+        content: '<p>This is a rich text content for date card</p>',
         meta: {
           date: new Date().toISOString(),
           reminder: true,
           priority: 'high',
         },
       };
-      console.log('Creating test date card with data:', JSON.stringify(testDateCardData, null, 2));
-
-      // Create test date card
-      const testDateCard = await this.cardService.createCard(
-        testDateCardData,
-        user._key
-      );
-      console.log('Created test date card:', JSON.stringify(testDateCard, null, 2));
+      console.log('Creating test date card with data:', JSON.stringify(dateCardData, null, 2));
+      await this.cardService.createCard(dateCardData, testUser);
 
     } catch (error) {
       console.error('Failed to create test data:', error);

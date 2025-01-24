@@ -14,7 +14,6 @@ type FieldDefinition {
   type: String!
   required: Boolean
   default: JSON
-  options: [String!]
   config: JSON
 }
 
@@ -29,11 +28,20 @@ type Template {
   name: String!
   inherits_from: [String!]!
   fields: [FieldGroup!]!
-  flattenedFields: JSON!  # For backward compatibility
   system: Boolean!
-  createdAt: Date!
-  updatedAt: Date!
-  createdBy: User
+  createdAt: String!
+  updatedAt: String
+  createdBy: String
+}
+
+type FlattenedTemplate {
+  _key: ID!
+  name: String!
+  fields: JSON!
+  system: Boolean!
+  createdAt: String!
+  updatedAt: String
+  createdBy: String
 }
 
 type Card {
@@ -59,7 +67,6 @@ input FieldDefinitionInput {
   type: String!
   required: Boolean
   default: JSON
-  options: [String!]
   config: JSON
 }
 
@@ -71,7 +78,7 @@ input FieldGroupInput {
 input CreateTemplateInput {
   name: String!
   inherits_from: [String!]
-  fields: [FieldGroupInput!]
+  fields: [FieldGroupInput!]!
 }
 
 input UpdateTemplateInput {
@@ -93,8 +100,9 @@ type Query {
   cardsWithRelations: [CardWithRelations!]!
 
   # Template related
-  template(id: ID!): Template
-  templates: [Template!]!
+  templates: [FlattenedTemplate!]!
+  template(id: ID!): FlattenedTemplate
+  templateWithInheritance(id: ID!): Template
   userTemplates: [Template!]!
 }
 

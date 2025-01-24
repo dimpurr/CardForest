@@ -15,7 +15,6 @@ export class TemplateService {
 
   async getTemplates(): Promise<FlattenedTemplate[]> {
     try {
-      const db = this.arangoDBService.getDatabase();
       const templates = await this.getTemplatesWithFields();
       return templates.map(template => this.flattenTemplate(template));
     } catch (error) {
@@ -26,13 +25,12 @@ export class TemplateService {
 
   async getTemplatesWithFields(): Promise<Template[]> {
     try {
-      const db = this.arangoDBService.getDatabase();
       const query = aql`
         FOR template IN templates
         SORT template.createdAt DESC
         RETURN template
       `;
-      const cursor = await db.query(query);
+      const cursor = await this.db.query(query);
       const templates = await cursor.all();
       return templates;
     } catch (error) {
@@ -56,151 +54,237 @@ export class TemplateService {
 
   async getFullTemplateById(id: string): Promise<Template> {
     try {
-      const db = this.arangoDBService.getDatabase();
-      const query = aql`
-        FOR template IN templates
-        FILTER template._key == ${id}
-        RETURN template
-      `;
-      const cursor = await db.query(query);
-      const [template] = await cursor.all();
-      
+      const template = await this.templateCollection.document(id);
       if (!template) {
         throw new Error('Template not found');
       }
-
-      // Load inherited templates
-      const inheritedTemplates = await Promise.all(
-        (template.inherits_from || []).map(parentId => this.getFullTemplateById(parentId))
-      );
-
-      // Merge inherited fields
-      template.fields = [
-        ...inheritedTemplates.flatMap(parent => parent.fields),
-        ...(template.fields || [])
-      ];
-
       return template;
     } catch (error) {
+      if (error.message === 'Template not found') {
+        throw error;
+      }
       console.error('Failed to get full template by id:', error);
-      throw error;
+      throw new Error('Failed to get template');
     }
   }
 
-  private flattenTemplate(template: Template): FlattenedTemplate {
-    const flatFields: Record<string, FieldDefinition> = {};
+  async getTemplateWithInheritance(templateId: string): Promise<Template> {
+    const template = await this.getFullTemplateById(templateId);
+    if (!template) {
+      throw new Error('Template not found');
+    }
+
+    if (!template.inherits_from || template.inherits_from.length === 0) {
+      return template;
+    }
+
+    const inheritedTemplates = await Promise.all(
+      template.inherits_from.map(parentId => this.getFullTemplateById(parentId))
+    );
+
+    // Merge fields from inherited templates
+    const mergedFields: FieldGroup[] = [];
+    for (const parent of inheritedTemplates) {
+      if (parent) {
+        mergedFields.push(...parent.fields);
+      }
+    }
+    mergedFields.push(...template.fields);
+
+    return {
+      ...template,
+      fields: mergedFields,
+    };
+  }
+
+  flattenTemplate(template: Template): FlattenedTemplate {
+    const flattenedFields: Record<string, FieldDefinition> = {};
     
     // Flatten fields from all groups
     template.fields.forEach(group => {
       group.fields.forEach(field => {
-        // Only add the field if it hasn't been overridden
-        if (!flatFields[field.name]) {
-          flatFields[field.name] = field;
-        }
+        flattenedFields[field.name] = field;
       });
     });
 
     return {
       _key: template._key,
       name: template.name,
-      fields: flatFields,
+      fields: flattenedFields,
       system: template.system,
       createdAt: template.createdAt,
       updatedAt: template.updatedAt,
-      createdBy: template.createdBy
+      createdBy: template.createdBy,
     };
   }
 
-  async getTemplateWithInheritance(templateId: string): Promise<Template> {
-    try {
-      const template = await this.getTemplateById(templateId);
-      if (!template) {
-        throw new Error(`Template ${templateId} not found`);
-      }
-
-      if (!template.inherits_from) {
-        return template;
-      }
-
-      const parent = await this.getTemplateWithInheritance(template.inherits_from);
-      return {
-        ...template,
-        fields: {
-          ...parent.fields,
-          ...template.fields,
-        },
-      };
-    } catch (error) {
-      console.error('Failed to get template with inheritance:', error);
-      throw error;
-    }
+  private isValidFieldType(type: string): boolean {
+    const validTypes = [
+      'text',
+      'number',
+      'boolean',
+      'date',
+      'richtext',
+      'select',
+      'multiselect',
+      'file',
+      'image',
+      'url',
+      'email',
+      'reference',
+    ];
+    return validTypes.includes(type);
   }
 
-  async createTemplate(
-    name: string,
-    fields: Record<string, FieldDefinition>,
-    inherits_from?: string,
-    userId?: string,
-  ): Promise<Template> {
-    try {
-      // 验证字段格式
-      this.validateFields(fields);
+  validateFields(fields: FieldGroup[]): void {
+    fields.forEach(group => {
+      if (!group._inherit_from) {
+        throw new Error('Field group must have _inherit_from property');
+      }
 
-      // 如果有继承，验证父模板
-      if (inherits_from) {
-        const parent = await this.getTemplateById(inherits_from);
-        if (!parent) {
-          throw new Error(`Parent template ${inherits_from} not found`);
+      group.fields.forEach(field => {
+        if (!field.name || !field.type) {
+          throw new Error('Field must have name and type');
         }
-      }
 
-      const now = new Date().toISOString();
-      const template = await this.templateCollection.save({
-        name,
-        fields,
-        inherits_from,
-        system: false,
-        createdAt: now,
-        updatedAt: now,
-        createdBy: userId ? `users/${userId}` : null,
+        if (!this.isValidFieldType(field.type)) {
+          throw new Error(`Invalid field type: ${field.type}`);
+        }
+
+        // Validate select/multiselect options
+        if ((field.type === 'select' || field.type === 'multiselect') && 
+            (!field.config?.options || !Array.isArray(field.config.options))) {
+          throw new Error(`${field.type} field must have options array in config`);
+        }
       });
+    });
+  }
 
-      return template;
-    } catch (error) {
-      console.error('Failed to create template:', error);
-      throw error;
+  validateCardData(template: Template, cardData: any): void {
+    // Get all field groups
+    const basicGroup = template.fields.find(g => g._inherit_from === '_self' || g._inherit_from === 'basic');
+    const metaGroups = template.fields.filter(g => g._inherit_from !== '_self' && g._inherit_from !== 'basic');
+
+    // Validate basic fields
+    if (basicGroup) {
+      basicGroup.fields.forEach(field => {
+        const value = cardData[field.name];
+        if (field.required && (value === undefined || value === null || value === '')) {
+          throw new Error(`Missing required basic field: ${field.name}`);
+        }
+        if (value !== undefined && value !== null) {
+          this.validateFieldValue(field.name, value, field);
+        }
+      });
+    }
+
+    // Validate meta fields
+    metaGroups.forEach(group => {
+      group.fields.forEach(field => {
+        const value = cardData.meta?.[field.name];
+        if (field.required && (value === undefined || value === null || value === '')) {
+          throw new Error(`Missing required meta field: ${field.name}`);
+        }
+        if (value !== undefined && value !== null) {
+          this.validateFieldValue(`meta.${field.name}`, value, field);
+        }
+      });
+    });
+  }
+
+  private validateFieldValue(fieldName: string, value: any, field: FieldDefinition): void {
+    if (value === undefined || value === null || value === '') {
+      if (field.required) {
+        throw new Error(`Required field ${fieldName} cannot be empty`);
+      }
+      return;
+    }
+
+    switch (field.type) {
+      case 'text':
+      case 'richtext':
+      case 'url':
+      case 'email':
+        if (typeof value !== 'string') {
+          throw new Error(`Field ${fieldName} must be a string`);
+        }
+        if (field.config?.maxLength && value.length > field.config.maxLength) {
+          throw new Error(`Field ${fieldName} exceeds maximum length of ${field.config.maxLength}`);
+        }
+        break;
+
+      case 'number':
+        if (typeof value !== 'number' || isNaN(value)) {
+          throw new Error(`Field ${fieldName} must be a number`);
+        }
+        break;
+
+      case 'boolean':
+        if (typeof value !== 'boolean') {
+          throw new Error(`Field ${fieldName} must be a boolean`);
+        }
+        break;
+
+      case 'date':
+        if (isNaN(Date.parse(value))) {
+          throw new Error(`Field ${fieldName} must be a valid date`);
+        }
+        break;
+
+      case 'select':
+        if (!field.config?.options?.includes(value)) {
+          throw new Error(`Invalid value for field ${fieldName}. Must be one of: ${field.config?.options?.join(', ')}`);
+        }
+        break;
+
+      case 'multiselect':
+        if (!Array.isArray(value) || !value.every(v => field.config?.options?.includes(v))) {
+          throw new Error(`Invalid values for field ${fieldName}. Each value must be one of: ${field.config?.options?.join(', ')}`);
+        }
+        break;
+
+      case 'reference':
+        if (typeof value !== 'string' || !value.match(/^[a-zA-Z0-9-_/]+$/)) {
+          throw new Error(`Field ${fieldName} must be a valid reference ID`);
+        }
+        break;
     }
   }
 
-  async updateTemplate(
-    templateId: string,
-    updates: Partial<Pick<Template, 'name' | 'fields'>>,
-  ): Promise<Template> {
-    try {
-      const template = await this.getTemplateById(templateId);
-      if (!template) {
-        throw new Error(`Template ${templateId} not found`);
-      }
+  async createTemplate(name: string, fields: FieldGroup[], inherits_from: string[] = []): Promise<Template> {
+    this.validateFields(fields);
 
-      if (template.system) {
-        throw new Error('Cannot modify system template');
-      }
+    const template: Template = {
+      name,
+      inherits_from,
+      fields,
+      system: false,
+      createdAt: new Date().toISOString(),
+    };
 
-      if (updates.fields) {
-        this.validateFields(updates.fields);
-      }
+    const result = await this.templateCollection.save(template);
+    template._key = result._key;
+    return template;
+  }
 
-      const updateData = {
-        ...updates,
-        updatedAt: new Date().toISOString(),
-      };
-
-      await this.templateCollection.update(templateId, updateData);
-      return this.getTemplateById(templateId);
-    } catch (error) {
-      console.error('Failed to update template:', error);
-      throw error;
+  async updateTemplate(templateId: string, updates: Partial<Template>): Promise<Template> {
+    const template = await this.getFullTemplateById(templateId);
+    if (!template) {
+      throw new Error('Template not found');
     }
+
+    if (updates.fields) {
+      this.validateFields(updates.fields);
+    }
+
+    const updatedTemplate = {
+      ...template,
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await this.templateCollection.update(templateId, updatedTemplate);
+    return this.getFullTemplateById(templateId);
   }
 
   async deleteTemplate(templateId: string): Promise<boolean> {
@@ -243,145 +327,6 @@ export class TemplateService {
     } catch (error) {
       console.error('Failed to delete template:', error);
       throw error;
-    }
-  }
-
-  validateFields(fields: Record<string, FieldDefinition>): void {
-    if (!fields || typeof fields !== 'object') {
-      throw new Error('Fields must be an object');
-    }
-
-    for (const [name, field] of Object.entries(fields)) {
-      if (!field || typeof field !== 'object') {
-        throw new Error(`Field ${name} must be an object`);
-      }
-
-      if (!field.type) {
-        throw new Error(`Field ${name} must have a type`);
-      }
-
-      // 验证字段类型
-      if (!this.isValidFieldType(field.type)) {
-        throw new Error(`Invalid field type: ${field.type}`);
-      }
-
-      // 验证其他字段属性
-      if (field.required !== undefined && typeof field.required !== 'boolean') {
-        throw new Error(`Field ${name} required must be boolean`);
-      }
-    }
-  }
-
-  private isValidFieldType(type: string): boolean {
-    const validTypes = [
-      'text',
-      'number',
-      'boolean',
-      'date',
-      'reference',
-      'richtext',
-      'file',
-      'image',
-      'url',
-      'email',
-      'select',
-      'multiselect',
-    ];
-    return validTypes.includes(type);
-  }
-
-  async validateCardData(templateId: string, cardData: any): Promise<boolean> {
-    try {
-      console.log('Validating card data for template:', templateId);
-      console.log('Card data received:', JSON.stringify(cardData, null, 2));
-      
-      const template = await this.getTemplateWithInheritance(templateId);
-      console.log('Template loaded:', JSON.stringify(template, null, 2));
-      
-      const fields = template.fields;
-      console.log('Template fields:', JSON.stringify(fields, null, 2));
-
-      // 检查根级别的必填字段
-      const rootRequiredFields = ['title'];
-      for (const field of rootRequiredFields) {
-        console.log(`Checking root field ${field}:`, cardData[field]);
-        if (!cardData[field]) {
-          throw new Error(`Required field ${field} is missing`);
-        }
-      }
-
-      // 初始化meta对象
-      if (!cardData.meta) {
-        console.log('Meta is missing, initializing empty object');
-        cardData.meta = {};
-      }
-
-      // 检查meta中的必填字段
-      for (const [name, field] of Object.entries(fields)) {
-        // 跳过根级别字段的验证
-        if (rootRequiredFields.includes(name)) {
-          continue;
-        }
-        
-        console.log(`Checking meta field ${name}:`, {
-          required: field.required,
-          value: cardData.meta[name],
-        });
-        
-        if (field.required && !cardData.meta[name]) {
-          throw new Error(`Required field ${name} is missing in meta`);
-        }
-      }
-
-      // 验证meta中字段的类型
-      for (const [name, value] of Object.entries(cardData.meta)) {
-        const field = fields[name];
-        if (!field) {
-          throw new Error(`Unknown field ${name} in meta`);
-        }
-
-        console.log(`Validating meta field ${name}:`, {
-          type: field.type,
-          value: value,
-        });
-        
-        if (!this.validateFieldValue(value, field)) {
-          throw new Error(`Invalid value for field ${name}`);
-        }
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Failed to validate card data:', error);
-      throw error;
-    }
-  }
-
-  private validateFieldValue(value: any, field: FieldDefinition): boolean {
-    if (value === null || value === undefined) {
-      return !field.required;
-    }
-
-    switch (field.type) {
-      case 'text':
-      case 'richtext':
-      case 'url':
-      case 'email':
-        return typeof value === 'string';
-      case 'number':
-        return typeof value === 'number';
-      case 'boolean':
-        return typeof value === 'boolean';
-      case 'date':
-        return !isNaN(Date.parse(value));
-      case 'reference':
-        return typeof value === 'string';
-      case 'select':
-        return field.options?.includes(value);
-      case 'multiselect':
-        return Array.isArray(value) && value.every(v => field.options?.includes(v));
-      default:
-        return true;
     }
   }
 }

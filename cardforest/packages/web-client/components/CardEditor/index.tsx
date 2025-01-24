@@ -54,8 +54,6 @@ export function CardEditor({ templateId, initialData, onChange }: CardEditorProp
     return <Alert variant="destructive">Template not found</Alert>;
   }
 
-  const fields = template.fields || {};
-
   const handleChange = (field: keyof CardEditorData, value: any) => {
     setFormData(prev => ({
       ...prev,
@@ -73,52 +71,64 @@ export function CardEditor({ templateId, initialData, onChange }: CardEditorProp
     }));
   };
 
+  // Find basic fields group
+  const basicFields = template.fields.find(group => 
+    group._inherit_from === 'basic' || group._inherit_from === '_self'
+  )?.fields || [];
+
   return (
     <div className="space-y-4">
-      {/* Title Section */}
-      <div>
-        <label className="block text-sm font-medium mb-1">Title</label>
-        <Input
-          value={formData.title}
-          onChange={(e) => handleChange('title', e.target.value)}
-          placeholder="Enter title"
-        />
-      </div>
-
-      {/* Body Section */}
-      <div>
-        <label className="block text-sm font-medium mb-1">Body</label>
-        <Textarea
-          value={formData.body}
-          onChange={(e) => handleChange('body', e.target.value)}
-          placeholder="Enter body text"
-        />
-      </div>
-
-      {/* Content Section (Rich Text) */}
-      <div>
-        <label className="block text-sm font-medium mb-1">Content</label>
-        <Textarea
-          value={formData.content}
-          onChange={(e) => handleChange('content', e.target.value)}
-          placeholder="Enter rich text content"
-        />
-      </div>
-
-      {/* Meta Section */}
-      {Object.keys(fields).length > 0 && (
-        <div>
-          <label className="block text-sm font-medium mb-2">Meta</label>
-          <div className="space-y-2 p-4 bg-background dark:bg-background border rounded-lg">
-            {Object.entries(fields).map(([fieldName, field]: [string, any]) => (
-              <MetaField
-                key={fieldName}
-                name={fieldName}
-                field={field}
-                value={formData.meta[fieldName]}
-                onChange={(value) => handleMetaChange(fieldName, value)}
+      {/* Basic Fields Section */}
+      <div className="space-y-4">
+        {basicFields.map(field => (
+          <div key={field.name}>
+            <label className="block text-sm font-medium mb-1 capitalize">
+              {field.name}
+            </label>
+            {field.type === 'richtext' ? (
+              <Textarea
+                value={formData[field.name as keyof CardEditorData] || ''}
+                onChange={(e) => handleChange(field.name as keyof CardEditorData, e.target.value)}
+                placeholder={`Enter ${field.name}`}
+                required={field.required}
               />
-            ))}
+            ) : (
+              <Input
+                value={formData[field.name as keyof CardEditorData] || ''}
+                onChange={(e) => handleChange(field.name as keyof CardEditorData, e.target.value)}
+                placeholder={`Enter ${field.name}`}
+                required={field.required}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Meta Fields Section */}
+      {template.fields.length > 1 && (
+        <div>
+          <label className="block text-sm font-medium mb-2">Meta Fields</label>
+          <div className="space-y-4">
+            {template.fields
+              .filter(group => group._inherit_from !== 'basic' && group._inherit_from !== '_self')
+              .map(group => (
+                <div key={group._inherit_from} className="p-4 bg-background dark:bg-background border rounded-lg">
+                  <h3 className="text-sm font-medium mb-3 capitalize">
+                    {group._inherit_from === '_self' ? 'Custom Fields' : `From ${group._inherit_from}`}
+                  </h3>
+                  <div className="space-y-3">
+                    {group.fields.map(field => (
+                      <MetaField
+                        key={field.name}
+                        name={field.name}
+                        field={field}
+                        value={formData.meta[field.name]}
+                        onChange={(value) => handleMetaChange(field.name, value)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
           </div>
         </div>
       )}

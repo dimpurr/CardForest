@@ -2,14 +2,11 @@ import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
 import { DatePicker } from '../ui/DatePicker';
 import { Select } from '../ui/Select';
+import { FieldDefinition } from '../../stores/cardEditor';
 
 interface MetaFieldProps {
   name: string;
-  field: {
-    type: string;
-    required?: boolean;
-    config?: any;
-  };
+  field: FieldDefinition;
   value: any;
   onChange: (value: any) => void;
 }
@@ -52,7 +49,6 @@ export function MetaField({ name, field, value, onChange }: MetaFieldProps) {
           />
         ) : (
           <Input
-            type="text"
             value={value || ''}
             onChange={(e) => onChange(e.target.value)}
             required={field.required}
@@ -63,10 +59,10 @@ export function MetaField({ name, field, value, onChange }: MetaFieldProps) {
       default:
         return (
           <Input
-            type="text"
             value={value || ''}
             onChange={(e) => onChange(e.target.value)}
             required={field.required}
+            {...field.config}
           />
         );
     }
@@ -74,9 +70,8 @@ export function MetaField({ name, field, value, onChange }: MetaFieldProps) {
 
   return (
     <div>
-      <label className="block text-sm font-medium mb-1">
+      <label className="block text-sm font-medium mb-1 capitalize">
         {name}
-        {field.required && <span className="text-red-500 ml-1">*</span>}
       </label>
       {renderField()}
     </div>
