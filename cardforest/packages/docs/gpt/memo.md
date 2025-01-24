@@ -15,6 +15,7 @@
 
 ## 模板与卡片系统
 * 模板字段验证：基础模板必须使用_inherit_from:'_self'，继承模板使用_inherit_from:templateKey。验证时basic/meta字段分开验证，meta字段在cardData.meta下。createUser需分别传入username和password参数而非对象。模板字段验证时需区分基础字段和元字段位置，避免字段定义和数据结构不匹配。
+* 模板字段处理：继承模板的字段分为两类：1)当前模板字段(_inherit_from:templateId)；2)继承字段(_inherit_from:'_self')。处理时需要先将当前模板字段标记为_self，然后添加继承模板的_self字段。不要用继承字段替换当前字段，而是构建包含两者的新字段数组。
 * API命名规范：使用my前缀表示当前用户相关查询如myCards而非userCards，使用full后缀表示包含完整关联数据的查询如card/full，需保持命名一致性避免同一概念使用不同名称。模板系统支持从基础模板到特化模板的继承关系，字段定义包含验证规则和UI展示信息，自动处理系统字段。卡片系统包含title/content/body基础字段，使用meta字段存储模板特定数据，通过relations集合管理父子关系。数据关联使用_key而非完整_id路径，GraphQL查询需要通过AQL JOIN获取完整关联对象。
 
 ## GraphQL Mutation 认证与卡片创建体验
@@ -34,6 +35,8 @@
 * 模板字段设计关键点：(1)Template和FlattenedTemplate的fields类型必须保持一致，统一用FieldGroup[]数组结构，避免使用Record<string,FieldDefinition>以防前后端不一致；(2)字段分组用_inherit_from区分基础字段(basic/_self)和meta字段；(3)GraphQL schema中不要用JSON类型表示复杂结构，应该完整定义字段类型以获得类型检查；(4)前端根据_inherit_from渲染不同区域，basic字段和meta字段分开展示。
 * 模板继承实现注意点：(1)所有获取模板的接口都要处理继承关系，包括getTemplateById；(2)继承处理通过getTemplateWithInheritance方法合并所有父模板的字段；(3)字段合并时保持_inherit_from标记以便前端区分字段来源；(4)GraphQL查询需要包含完整的字段结构。/ GraphQL 查询 - `GET_TEMPLATE_WITH_INHERITANCE`: 获取模板及其继承关系 - `CREATE_TEMPLATE`, `UPDATE_TEMPLATE`: 分别用于创建和更新模板   - 查询和变更分别放在 queries/ 和 mutations/ 目录下
 
+## 前端调试
+* 调试数据展示：创建全局DebugPanel组件，支持折叠/展开，仅在开发环境显示。使用JSON.stringify(data,null,2)格式化展示。调试GraphQL数据时展示original和processed两部分，帮助理解数据转换过程。组件放在@/components/debug目录。
 
 ## 经验教训
 

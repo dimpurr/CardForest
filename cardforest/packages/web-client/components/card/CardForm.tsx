@@ -1,4 +1,4 @@
-import { useForm } from 'react-hook-form';
+import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import {
@@ -46,6 +46,12 @@ export function CardForm({ template, onSubmit, defaultValues = {} }: CardFormPro
   const ownFields = getOwnFields(template);
   const inheritedFields = getInheritedFields(template);
 
+  console.log('CardForm fields:', {
+    template,
+    ownFields,
+    inheritedFields
+  });
+
   const renderField = (field: any, formField: any) => (
     <FormControl>
       {field.type === 'text' || field.type === 'date' || field.type === 'boolean' ? (
@@ -57,7 +63,7 @@ export function CardForm({ template, onSubmit, defaultValues = {} }: CardFormPro
   );
 
   return (
-    <Form {...form}>
+    <FormProvider {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6" id="card-form">
         {/* 显示自己的字段 */}
         {ownFields.length > 0 && (
@@ -107,6 +113,6 @@ export function CardForm({ template, onSubmit, defaultValues = {} }: CardFormPro
           </div>
         )}
       </form>
-    </Form>
+    </FormProvider>
   );
 }

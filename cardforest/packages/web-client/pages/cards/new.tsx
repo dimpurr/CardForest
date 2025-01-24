@@ -5,6 +5,7 @@ import { CardEditor } from '@/components/card/CardEditor';
 import { Alert } from '@/components/ui/alert';
 import { getTemplateFullId } from '@/utils/templateUtils';
 import { Layout } from '@/components/Layout';
+import { DebugPanel } from '@/components/debug/DebugPanel';
 
 export default function NewCardPage() {
   const router = useRouter();
@@ -55,44 +56,62 @@ export default function NewCardPage() {
     );
   }
 
-  // 处理继承的字段
-  const template = data.template;
-  const inheritedTemplates = data.inheritedTemplates || [];
+  const { template, inheritedTemplates } = data;
 
-  // 将继承的字段添加到模板中
-  template.fields = template.fields.map((group: any) => {
-    if (group._inherit_from !== '_self') {
-      const inheritedTemplate = inheritedTemplates.find(
-        (t: any) => t._id === `templates/${group._inherit_from}`
-      );
-      if (inheritedTemplate) {
-        return {
-          ...group,
-          fields: inheritedTemplate.fields
-            .filter((g: any) => g._inherit_from === '_self')
-            .flatMap((g: any) => g.fields)
-        };
-      }
-    }
-    return group;
-  });
+  // 处理模板继承
+  const processedTemplate = {
+    ...template,
+    fields: [
+      // 首先添加当前模板的字段
+      ...template.fields.map(group => ({
+        ...group,
+        _inherit_from: '_self'  // 将当前模板的字段标记为 _self
+      })),
+      // 然后添加继承的字段
+      ...template.fields
+        .filter(group => group._inherit_from !== '_self')
+        .map(group => {
+          const inheritedTemplate = inheritedTemplates.find(
+            t => t._id === `templates/${group._inherit_from}`
+          );
+          if (inheritedTemplate) {
+            return {
+              ...group,
+              fields: inheritedTemplate.fields
+                .filter(g => g._inherit_from === '_self')
+                .flatMap(g => g.fields || []),
+              _inherit_from: group._inherit_from  // 保持原有的 _inherit_from
+            };
+          }
+          return group;
+        })
+    ]
+  };
+
+  console.log('Final template:', JSON.stringify(processedTemplate, null, 2));
 
   return (
     <Layout>
-      <div className="p-4">
-        <div className="flex items-center mb-6">
-          <button
-            onClick={() => router.back()}
-            className="mr-4 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-          >
-            ← Back
-          </button>
-          <h1 className="text-2xl font-bold">Create New Card</h1>
-          <span className="ml-2 text-gray-600">
-            using template: {data.template.name}
-          </span>
-        </div>
-        <CardEditor template={template} mode="create" />
+      <div className="p-6">
+        <DebugPanel
+          title="Template Data"
+          data={{
+            original: {
+              template: {
+                _id: template._id,
+                fields: template.fields,
+              },
+              inheritedTemplates: inheritedTemplates.map((t: any) => ({
+                _id: t._id,
+                fields: t.fields,
+              })),
+            },
+            processed: {
+              fields: processedTemplate.fields,
+            },
+          }}
+        />
+        <CardEditor template={processedTemplate} mode="create" />
       </div>
     </Layout>
   );

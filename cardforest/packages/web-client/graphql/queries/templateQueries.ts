@@ -11,10 +11,13 @@ export const TEMPLATE_FIELDS_FRAGMENT = gql`
         type
         required
         default
+        __typename
       }
+      __typename
     }
     createdAt
     updatedAt
+    __typename
   }
 `;
 
@@ -40,10 +43,11 @@ export const GET_TEMPLATE_WITH_INHERITANCE = gql`
   query GetTemplateWithInheritance($id: ID!) {
     template(id: $id) {
       ...TemplateFields
-      inherits_from
+      __typename
     }
     inheritedTemplates: templates {
       ...TemplateFields
+      __typename
     }
   }
   ${TEMPLATE_FIELDS_FRAGMENT}
