@@ -47,6 +47,10 @@ export class AuthService {
   }
 
   async validateOAuthLogin(profile): Promise<string> {
+    if (!profile || !profile.username) {
+      throw new UnauthorizedException('Invalid GitHub profile: missing username');
+    }
+
     let user = await this.arangoDBService.getDatabase().query(`
       FOR user IN users
         FILTER user.username == @username
@@ -59,11 +63,13 @@ export class AuthService {
       user = await this.arangoDBService.getDatabase().collection('users').save({
         username: profile.username,
         password: hashedPassword,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       });
     }
 
     const payload = { username: user.username, sub: user._key };
-    return this.generateToken(payload); // 使用私有方法生成令牌
+    return this.generateToken(payload);
   }
 
   async validateUserByUsername(username: string): Promise<any> {

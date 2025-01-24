@@ -21,10 +21,21 @@ export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
 
   async validate(accessToken: string, refreshToken: string, profile: any, done: Function) {
     try {
+      console.log('GitHub profile:', JSON.stringify(profile, null, 2));
+      
+      if (!profile || !profile.username) {
+        console.error('Invalid GitHub profile:', profile);
+        throw new Error('Invalid GitHub profile: missing username');
+      }
+
       const username = profile.username;
-      let user = await this.userService.findUserByUsername(username); // 假设这个方法在 UserService 中定义
+      console.log('Attempting to find user:', username);
+      
+      let user = await this.userService.findUserByUsername(username);
 
       if (!user) {
+        console.log('User not found, creating new user:', username);
+        
         // 生成一个随机密码
         const randomPassword = Math.random().toString(36).slice(-8);
         const hashedPassword = await bcrypt.hash(randomPassword, 10);
@@ -33,8 +44,13 @@ export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
         user = await this.userService.createUser(username, hashedPassword);
         
         if (!user) {
+          console.error('Failed to create user:', username);
           throw new Error('Failed to create user');
         }
+        
+        console.log('New user created:', username);
+      } else {
+        console.log('Existing user found:', username);
       }
 
       return done(null, {
