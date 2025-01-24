@@ -1,8 +1,8 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { TemplateService } from '../services/template.service';
-import { Template, FieldGroup } from '../interfaces/template.interface';
+import { Template } from '../interfaces/template.interface';
 import { UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { AuthGuard } from '../guards/auth.guard';
 import { CurrentUser } from '../decorators/current-user.decorator';
 
 @Resolver('Template')
@@ -19,26 +19,22 @@ export class TemplateResolver {
     return this.templateService.getTemplateById(id);
   }
 
-  @Query('templateWithInheritance')
-  async getTemplateWithInheritance(@Args('id') id: string) {
-    return this.templateService.getTemplateWithInheritance(id);
+  @Query('flattenedTemplate')
+  async getFlattenedTemplate(@Args('id') id: string) {
+    return this.templateService.getFullTemplateById(id);
   }
 
   @Mutation('createTemplate')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AuthGuard)
   async createTemplate(
-    @Args('input') input: { name: string; fields: FieldGroup[]; inherits_from?: string[] },
+    @Args('input') input: { name: string; fields: any[]; inherits_from?: string[] },
     @CurrentUser() user: any,
   ) {
-    return this.templateService.createTemplate(
-      input.name,
-      input.fields,
-      input.inherits_from || [],
-    );
+    return this.templateService.createTemplate(input, user);
   }
 
   @Mutation('updateTemplate')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AuthGuard)
   async updateTemplate(
     @Args('id') id: string,
     @Args('input') input: Partial<Template>,
@@ -47,7 +43,7 @@ export class TemplateResolver {
   }
 
   @Mutation('deleteTemplate')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AuthGuard)
   async deleteTemplate(@Args('id') id: string) {
     return this.templateService.deleteTemplate(id);
   }

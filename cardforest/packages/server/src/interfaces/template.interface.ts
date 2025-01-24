@@ -15,6 +15,7 @@ export interface FieldGroup {
 export interface Template {
   _key?: string;
   _id?: string;
+  _rev?: string;
   name: string;
   inherits_from: string[];  // List of templates this template inherits from
   fields: FieldGroup[];     // Fields grouped by their source template
@@ -28,6 +29,7 @@ export interface Template {
 export interface FlattenedTemplate {
   _key?: string;
   _id?: string;
+  _rev?: string;
   name: string;
   fields: FieldGroup[];  // Changed from Record<string, FieldDefinition> to FieldGroup[]
   system: boolean;

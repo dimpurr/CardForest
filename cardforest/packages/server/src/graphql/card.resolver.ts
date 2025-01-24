@@ -22,7 +22,6 @@ export class CardResolver {
   @UseGuards(AuthGuard)
   async getMyCards(@CurrentUser() user: any) {
     console.log('Getting cards for user:', user);
-    // Extract sub from user object
     const userId = typeof user === 'object' ? user.sub : user;
     return this.cardService.getCardsByUserId(userId);
   }
@@ -62,9 +61,9 @@ export class CardResolver {
     return this.cardService.deleteCard(id, userId);
   }
 
-  @Mutation('createRelation')
+  @Mutation('createCardRelation')
   @UseGuards(AuthGuard)
-  async createRelation(
+  async createCardRelation(
     @Args('fromCardId') fromCardId: string,
     @Args('toCardId') toCardId: string,
     @CurrentUser() user: any,

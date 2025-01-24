@@ -99,10 +99,9 @@ export class CardService {
         createdBy: {
           _id: `users/${user.sub}`,
           _key: user.sub,
-          username: user.username,
           provider: user.provider,
           providerId: user.providerId
-        },
+        }
       };
     } catch (error) {
       console.error('Failed to create card:', error);

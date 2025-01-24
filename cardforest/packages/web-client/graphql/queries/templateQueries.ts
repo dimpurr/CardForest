@@ -1,7 +1,7 @@
 import { gql } from '@apollo/client';
 
 export const TEMPLATE_FIELDS_FRAGMENT = gql`
-  fragment TemplateFields on FlattenedTemplate {
+  fragment TemplateFields on Template {
     _id
     name
     fields {
@@ -43,11 +43,9 @@ export const GET_TEMPLATE_WITH_INHERITANCE = gql`
   query GetTemplateWithInheritance($id: ID!) {
     template(id: $id) {
       ...TemplateFields
-      __typename
     }
     inheritedTemplates: templates {
       ...TemplateFields
-      __typename
     }
   }
   ${TEMPLATE_FIELDS_FRAGMENT}

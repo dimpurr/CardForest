@@ -41,6 +41,13 @@ export interface CreateCardInput {
     meta?: Nullable<JSON>;
 }
 
+export interface UpdateCardInput {
+    title?: Nullable<string>;
+    content?: Nullable<string>;
+    body?: Nullable<string>;
+    meta?: Nullable<JSON>;
+}
+
 export interface User {
     _key: string;
     _id: string;
@@ -88,7 +95,8 @@ export interface FlattenedTemplate {
 export interface Card {
     _key: string;
     _id: string;
-    template: Template;
+    templateId: string;
+    template?: Nullable<Template>;
     title: string;
     content?: Nullable<string>;
     body?: Nullable<string>;
@@ -103,30 +111,32 @@ export interface CardWithRelations {
     children: Card[];
 }
 
+export interface AuthResponse {
+    token: string;
+    user: User;
+}
+
 export interface IQuery {
     me(): Nullable<User> | Promise<Nullable<User>>;
-    user(id: string): Nullable<User> | Promise<Nullable<User>>;
-    users(): User[] | Promise<User[]>;
+    template(id: string): Nullable<Template> | Promise<Nullable<Template>>;
+    templates(): Template[] | Promise<Template[]>;
+    flattenedTemplate(id: string): Nullable<FlattenedTemplate> | Promise<Nullable<FlattenedTemplate>>;
     card(id: string): Nullable<Card> | Promise<Nullable<Card>>;
     cards(): Card[] | Promise<Card[]>;
     myCards(): Card[] | Promise<Card[]>;
     cardsWithRelations(): CardWithRelations[] | Promise<CardWithRelations[]>;
-    templates(): FlattenedTemplate[] | Promise<FlattenedTemplate[]>;
-    template(id: string): Nullable<FlattenedTemplate> | Promise<Nullable<FlattenedTemplate>>;
-    templateWithInheritance(id: string): Nullable<Template> | Promise<Nullable<Template>>;
-    userTemplates(): Template[] | Promise<Template[]>;
 }
 
 export interface IMutation {
-    login(username: string, password: string): string | Promise<string>;
+    login(username: string, password: string): AuthResponse | Promise<AuthResponse>;
     register(username: string, password: string): User | Promise<User>;
     createTemplate(input: CreateTemplateInput): Template | Promise<Template>;
     updateTemplate(id: string, input: UpdateTemplateInput): Template | Promise<Template>;
     deleteTemplate(id: string): boolean | Promise<boolean>;
     createCard(input: CreateCardInput): Card | Promise<Card>;
-    updateCard(id: string, title?: Nullable<string>, content?: Nullable<string>, body?: Nullable<string>, meta?: Nullable<JSON>): Card | Promise<Card>;
+    updateCard(id: string, input: UpdateCardInput): Card | Promise<Card>;
     deleteCard(id: string): boolean | Promise<boolean>;
-    createRelation(fromCardId: string, toCardId: string): boolean | Promise<boolean>;
+    createCardRelation(fromCardId: string, toCardId: string): boolean | Promise<boolean>;
 }
 
 export type JSON = any;

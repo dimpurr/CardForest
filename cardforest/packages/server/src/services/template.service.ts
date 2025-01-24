@@ -245,20 +245,33 @@ export class TemplateService {
     }
   }
 
-  async createTemplate(name: string, fields: FieldGroup[], inherits_from: string[] = []): Promise<Template> {
-    this.validateFields(fields);
+  async createTemplate(
+    input: { name: string; fields: FieldGroup[]; inherits_from?: string[] },
+    user: any
+  ): Promise<Template> {
+    this.validateFields(input.fields);
 
     const template: Template = {
-      name,
-      inherits_from,
-      fields,
+      name: input.name,
+      fields: input.fields,
+      inherits_from: input.inherits_from || [],
       system: false,
       createdAt: new Date().toISOString(),
+      createdBy: `users/${user.sub}`,
     };
 
-    const result = await this.templateCollection.save(template);
-    template._key = result._key;
-    return template;
+    try {
+      const result = await this.templateCollection.save(template);
+      return {
+        ...template,
+        _id: result._id,
+        _key: result._key,
+        _rev: result._rev,
+      };
+    } catch (error) {
+      console.error('Failed to create template:', error);
+      throw error;
+    }
   }
 
   async updateTemplate(templateId: string, updates: Partial<Template>): Promise<Template> {

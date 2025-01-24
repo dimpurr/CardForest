@@ -49,12 +49,25 @@ export class UserService {
       `,
         bindVars: {
           '@collection': collection.name,
-          username: username,
+          username,
         },
       });
-      return await cursor.next(); // 假设用户名是唯一的
+      const [user] = await cursor.all();
+      return user;
     } catch (error) {
-      console.error('Failed to find user:', error);
+      console.error('Failed to find user by username:', error);
+      return null;
+    }
+  }
+
+  async getUserById(userId: string): Promise<any> {
+    try {
+      const db = this.arangoDBService.getDatabase();
+      const collection = db.collection('users');
+      const user = await collection.document(userId);
+      return user;
+    } catch (error) {
+      console.error('Failed to get user by id:', error);
       return null;
     }
   }

@@ -1,9 +1,10 @@
 import { gql } from '@apollo/client';
 
-export const GET_CARDS = gql`
-  query GetCards {
-    cards {
+export const GET_CARD = gql`
+  query GetCard($id: ID!) {
+    card(id: $id) {
       _id
+      templateId
       title
       content
       body
@@ -13,18 +14,15 @@ export const GET_CARDS = gql`
       createdBy {
         username
       }
-      template {
-        _id
-        name
-      }
     }
   }
 `;
 
-export const GET_CARD = gql`
-  query GetCard($id: ID!) {
+export const GET_CARD_WITH_TEMPLATE = gql`
+  query GetCardWithTemplate($id: ID!) {
     card(id: $id) {
       _id
+      templateId
       title
       content
       body
@@ -43,9 +41,28 @@ export const GET_CARD = gql`
             name
             type
             required
-            options
+            default
+            config
           }
         }
+      }
+    }
+  }
+`;
+
+export const GET_MY_CARDS = gql`
+  query GetMyCards {
+    myCards {
+      _id
+      templateId
+      title
+      content
+      body
+      meta
+      createdAt
+      updatedAt
+      createdBy {
+        username
       }
     }
   }

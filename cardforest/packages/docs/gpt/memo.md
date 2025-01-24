@@ -36,6 +36,27 @@
 * 模板字段设计关键点：(1)Template和FlattenedTemplate的fields类型必须保持一致，统一用FieldGroup[]数组结构，避免使用Record<string,FieldDefinition>以防前后端不一致；(2)字段分组用_inherit_from区分基础字段(basic/_self)和meta字段；(3)GraphQL schema中不要用JSON类型表示复杂结构，应该完整定义字段类型以获得类型检查；(4)前端根据_inherit_from渲染不同区域，basic字段和meta字段分开展示。
 * 模板继承实现注意点：(1)所有获取模板的接口都要处理继承关系，包括getTemplateById；(2)继承处理通过getTemplateWithInheritance方法合并所有父模板的字段；(3)字段合并时保持_inherit_from标记以便前端区分字段来源；(4)GraphQL查询需要包含完整的字段结构。/ GraphQL 查询 - `GET_TEMPLATE_WITH_INHERITANCE`: 获取模板及其继承关系 - `CREATE_TEMPLATE`, `UPDATE_TEMPLATE`: 分别用于创建和更新模板   - 查询和变更分别放在 queries/ 和 mutations/ 目录下
 
+## GraphQL Schema 设计经验
+
+### 2025-01-24 类型统一和 Fragment 复用
+
+在设计 GraphQL Schema 时，需要注意以下几点：
+
+1. **类型统一性**：如果两个类型有相同的字段结构，应该尽量合并成一个类型，而不是创建多个相似的类型。这样可以：
+   - 允许 Fragment 在不同查询间复用
+   - 减少类型定义的重复
+   - 简化客户端的类型处理
+
+2. **类型扩展方式**：
+   - 使用字段标记而不是新类型来区分变体
+   - 必要时使用 interface 来共享字段
+   - 考虑使用 union type 来处理多态性
+
+3. **实际案例**：
+   - 原本将 `Template` 和 `FlattenedTemplate` 分开定义，导致 Fragment 无法复用
+   - 解决方案是合并为单一的 `Template` 类型，通过查询方法的不同来返回不同的数据结构
+   - 保持了类型系统的简洁性，同时提高了代码的可维护性
+
 ## 前端调试
 * 调试数据展示：创建全局DebugPanel组件，支持折叠/展开，仅在开发环境显示。使用JSON.stringify(data,null,2)格式化展示。调试GraphQL数据时展示original和processed两部分，帮助理解数据转换过程。组件放在@/components/debug目录。
 

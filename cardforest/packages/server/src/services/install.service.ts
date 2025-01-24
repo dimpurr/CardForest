@@ -113,9 +113,12 @@ export class InstallService {
     ];
 
     const basicTemplate = await this.templateService.createTemplate(
-      'basic',
-      basicTemplateFields,
-      [],
+      {
+        name: 'basic',
+        fields: basicTemplateFields,
+        inherits_from: []
+      },
+      { sub: 'system' }
     );
     this.basicTemplateKey = basicTemplate._key;
     console.log('Created basic template:', basicTemplate._key);
@@ -150,9 +153,12 @@ export class InstallService {
     ];
 
     const dateTemplate = await this.templateService.createTemplate(
-      'datecard',
-      dateTemplateFields,
-      [this.basicTemplateKey],
+      {
+        name: 'datecard',
+        fields: dateTemplateFields,
+        inherits_from: [this.basicTemplateKey]
+      },
+      { sub: 'system' }
     );
     this.dateTemplateKey = dateTemplate._key;
     console.log('Created date template:', dateTemplate._key);
