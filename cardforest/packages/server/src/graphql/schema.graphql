@@ -33,7 +33,6 @@ type Template {
   createdAt: String!
   updatedAt: String
   createdBy: String
-  __typename: String
 }
 
 type Card {

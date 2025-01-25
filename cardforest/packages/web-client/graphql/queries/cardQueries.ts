@@ -61,6 +61,11 @@ export const GET_MY_CARDS = gql`
       meta
       createdAt
       updatedAt
+      template {
+        _id
+        name
+        fields
+      }
       createdBy {
         username
       }

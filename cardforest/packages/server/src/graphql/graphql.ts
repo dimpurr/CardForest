@@ -72,19 +72,9 @@ export interface FieldGroup {
 export interface Template {
     _key: string;
     _id: string;
+    _rev?: Nullable<string>;
     name: string;
     inherits_from: string[];
-    fields: FieldGroup[];
-    system: boolean;
-    createdAt: string;
-    updatedAt?: Nullable<string>;
-    createdBy?: Nullable<string>;
-}
-
-export interface FlattenedTemplate {
-    _key: string;
-    _id: string;
-    name: string;
     fields: FieldGroup[];
     system: boolean;
     createdAt: string;
@@ -120,7 +110,7 @@ export interface IQuery {
     me(): Nullable<User> | Promise<Nullable<User>>;
     template(id: string): Nullable<Template> | Promise<Nullable<Template>>;
     templates(): Template[] | Promise<Template[]>;
-    flattenedTemplate(id: string): Nullable<FlattenedTemplate> | Promise<Nullable<FlattenedTemplate>>;
+    flattenedTemplate(id: string): Nullable<Template> | Promise<Nullable<Template>>;
     card(id: string): Nullable<Card> | Promise<Nullable<Card>>;
     cards(): Card[] | Promise<Card[]>;
     myCards(): Card[] | Promise<Card[]>;

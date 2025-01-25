@@ -23,7 +23,7 @@ export class CardResolver {
   async getMyCards(@CurrentUser() user: any) {
     console.log('Getting cards for user:', user);
     const userId = typeof user === 'object' ? user.sub : user;
-    return this.cardService.getCardsByUserId(userId);
+    return this.cardService.getMyCards(userId);
   }
 
   @Query('cardsWithRelations')

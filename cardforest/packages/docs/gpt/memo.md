@@ -16,6 +16,7 @@
 ## 模板与卡片系统
 * 模板字段验证：基础模板必须使用_inherit_from:'_self'，继承模板使用_inherit_from:templateKey。验证时basic/meta字段分开验证，meta字段在cardData.meta下。createUser需分别传入username和password参数而非对象。模板字段验证时需区分基础字段和元字段位置，避免字段定义和数据结构不匹配。
 * 模板字段处理：继承模板的字段分为两类：1)当前模板字段(_inherit_from:templateId)；2)继承字段(_inherit_from:'_self')。处理时需要先将当前模板字段标记为_self，然后添加继承模板的_self字段。不要用继承字段替换当前字段，而是构建包含两者的新字段数组。
+* 模板继承UI规则：继承选择界面中，当前模板自身需要被禁用且永远不选中(disabled+unchecked)，已继承的父模板需要被禁用且永远选中(disabled+checked)，只有其他独立模板可以被自由选择。这确保了继承关系的单向性和一致性，避免循环继承。
 * 卡片创建格式：CreateCardInput必须分开处理基础字段(title/content/body)和meta字段。基础字段直接放在input对象中，其他字段放在meta对象中。不要使用fields数组格式，这是旧版本的格式已废弃。
 * API命名规范：使用my前缀表示当前用户相关查询如myCards而非userCards，使用full后缀表示包含完整关联数据的查询如card/full，需保持命名一致性避免同一概念使用不同名称。模板系统支持从基础模板到特化模板的继承关系，字段定义包含验证规则和UI展示信息，自动处理系统字段。卡片系统包含title/content/body基础字段，使用meta字段存储模板特定数据，通过relations集合管理父子关系。数据关联使用_key而非完整_id路径，GraphQL查询需要通过AQL JOIN获取完整关联对象。
 
@@ -35,27 +36,16 @@
 * 模板继承采用原型链机制：festival_date_card -> datecard -> basic_card，字段按来源分组存储，每组用_inherit_from标记来源模板。编辑器中title/body/content在顶部，meta区域按模板来源分组显示。字段存储格式：{name:"festival_date_card", inherits_from:["datecard"], fields:[{_inherit_from:"basic_card",fields:[{name:"title",type:"text"}]},{_inherit_from:"datecard",fields:[{name:"start_date",type:"date"}]},{_inherit_from:"_self",fields:[{name:"origin",type:"text"}]}]}。GraphQL返回扁平化字段用flattenedFields保持兼容。
 * 模板字段设计关键点：(1)Template和FlattenedTemplate的fields类型必须保持一致，统一用FieldGroup[]数组结构，避免使用Record<string,FieldDefinition>以防前后端不一致；(2)字段分组用_inherit_from区分基础字段(basic/_self)和meta字段；(3)GraphQL schema中不要用JSON类型表示复杂结构，应该完整定义字段类型以获得类型检查；(4)前端根据_inherit_from渲染不同区域，basic字段和meta字段分开展示。
 * 模板继承实现注意点：(1)所有获取模板的接口都要处理继承关系，包括getTemplateById；(2)继承处理通过getTemplateWithInheritance方法合并所有父模板的字段；(3)字段合并时保持_inherit_from标记以便前端区分字段来源；(4)GraphQL查询需要包含完整的字段结构。/ GraphQL 查询 - `GET_TEMPLATE_WITH_INHERITANCE`: 获取模板及其继承关系 - `CREATE_TEMPLATE`, `UPDATE_TEMPLATE`: 分别用于创建和更新模板   - 查询和变更分别放在 queries/ 和 mutations/ 目录下
+* 在设计 GraphQL Schema 时，需要注意以下几点： **类型统一性**：如果两个类型有相同的字段结构，应该尽量合并成一个类型，而不是创建多个相似的类型。这样可以： - 允许 Fragment 在不同查询间复用 - 减少类型定义的重复 - 简化客户端的类型处理  **类型扩展方式**： - 使用字段标记而不是新类型来区分变体 - 必要时使用 interface 来共享字段 - 考虑使用 union type 来处理多态性  **实际案例**： - 原本将 `Template` 和 `FlattenedTemplate` 分开定义，导致 Fragment 无法复用 - 解决方案是合并为单一的 `Template` 类型，通过查询方法的不同来返回不同的数据结构 - 保持了类型系统的简洁性，同时提高了代码的可维护性 
 
-## GraphQL Schema 设计经验
+## GraphQL 字段处理
 
-### 2025-01-24 类型统一和 Fragment 复用
+* **非空字段回退值**：GraphQL schema 中的非空字段(`!`)必须确保所有查询都返回值。解决方案：(1)在 resolver 中提供合理的回退值，如 `user.username || user.name || user.email || user._key`；(2)统一所有相关查询的返回结构；(3)在 schema 中谨慎使用非空标记。
+* **保留字段**：以双下划线开头的字段名(如`__typename`)是 GraphQL 保留的，不能在 schema 中显式定义。这些字段由 GraphQL 运行时自动处理，用于内省和类型信息。
 
-在设计 GraphQL Schema 时，需要注意以下几点：
+## 组件渲染规则
 
-1. **类型统一性**：如果两个类型有相同的字段结构，应该尽量合并成一个类型，而不是创建多个相似的类型。这样可以：
-   - 允许 Fragment 在不同查询间复用
-   - 减少类型定义的重复
-   - 简化客户端的类型处理
-
-2. **类型扩展方式**：
-   - 使用字段标记而不是新类型来区分变体
-   - 必要时使用 interface 来共享字段
-   - 考虑使用 union type 来处理多态性
-
-3. **实际案例**：
-   - 原本将 `Template` 和 `FlattenedTemplate` 分开定义，导致 Fragment 无法复用
-   - 解决方案是合并为单一的 `Template` 类型，通过查询方法的不同来返回不同的数据结构
-   - 保持了类型系统的简洁性，同时提高了代码的可维护性
+* **Radix UI Slot 组件**：Slot 组件要求只能有单个子元素，条件渲染多个元素时需要先合并为一个。解决方案：(1)使用 switch/renderFn 返回单一元素；(2)避免在 Slot 内使用多个条件渲染。错误示例：`<Slot>{cond1 && <A/>}{cond2 && <B/>}</Slot>`，正确示例：`<Slot>{cond1 ? <A/> : <B/>}</Slot>`。
 
 ## 前端调试
 * 调试数据展示：创建全局DebugPanel组件，支持折叠/展开，仅在开发环境显示。使用JSON.stringify(data,null,2)格式化展示。调试GraphQL数据时展示original和processed两部分，帮助理解数据转换过程。组件放在@/components/debug目录。
@@ -76,5 +66,30 @@
 
 ## 调试与错误处理
 * 后端调试页面（如/install、/card/full）保持简单HTML风格仅用于开发调试和状态查看。环境检测通过typeof window和process.type判断，条件导入根据环境选择具体实现。认证调试要点：检查Network中/api/auth/session返回和GraphQL请求Authorization header；检查Cookie中jwt和next-auth.session-token存在性；常见问题包括循环登录（检查JWT同步和cookie设置）、401/403（检查Authorization header格式）、Session数据不完整（检查next-auth callbacks）。JWT处理关键：useJWT必须同时处理session和cookie来源保持同步；cookie设置需要{secure:仅生产环境,sameSite:'lax',path:'/',expires:1}；Apollo Client的authLink中用js-cookie替代document.cookie解析。Card.createdBy非空但返回null说明数据库中user关联丢失，检查Card创建时的user绑定和GraphQL resolver中的关系查询。Apollo Client无限循环原因：fetchPolicy设为cache-and-network导致，改为network-only；userId处理需要从user对象中提取sub字段；ArangoDB查询中userRef格式必须为users/[userId]。
+
+## GraphQL 错误处理
+
+* **错误传递链**：GraphQL 错误需要从后端传递到前端并展示给用户。解决方案：(1)后端 resolver 抛出具体错误；(2)前端检查 mutation 结果 `if (!result.data?.mutationName)`；(3)使用 React 状态管理错误消息；(4)用 Alert 组件展示错误。错误示例：`result = await mutation()`，正确示例：`result = await mutation(); if (!result.data?.x) throw new Error()`。
+
+## GraphQL 查询和缓存
+
+* **查询字段同步**：GraphQL 查询和缓存更新必须使用相同的字段集。解决方案：(1)在一个地方定义查询，确保复用；(2)缓存更新时使用完整的查询对象；(3)处理缓存为空的情况。错误示例：`cache.writeQuery({query,data:{myCards:[{_id,title}]}})`，正确示例：`cache.writeQuery({query,data:{myCards:[{...完整字段}]}})`。
+
+## React Hook Form
+
+* **Controller 作用域**：`Controller` 组件的 `render` 回调中才能访问到 `field` 对象，需要确保所有使用 `field` 的逻辑都在回调内部。错误示例：`render={({field})=><A>{helperFn(field)}</A>}`，正确示例：`render={({field})=>{const helper=()=>field.x; return <A>{helper()}</A>}}`。
+* **表单提交处理**：表单组件和提交按钮在不同组件时，需要正确关联。解决方案：(1)表单组件导出 `handleSubmit`；(2)按钮组件调用 `handleSubmit`；(3)使用 `window` 对象或 Context 共享。错误示例：`<Button type="submit" form="form-id">`，正确示例：`<Button onClick={()=>handleSubmit()}>`。
+
+## 调试与开发工具
+
+* **调试面板事件处理**：调试面板中的交互（如展开/折叠）不应影响主应用。解决方案：(1)使用 `e.preventDefault()` 防止事件冒泡；(2)避免在调试组件中使用可能触发导航的元素；(3)调试状态共享优先使用 props，必要时可通过 window 对象。错误示例：`onClick={()=>setExpand(!expand)}`，正确示例：`onClick={e=>{e.preventDefault();setExpand(!expand)}}`。
+
+## Apollo Client
+
+* **缓存更新**：mutation 后需要更新相关查询的缓存。解决方案：(1)在 mutation 配置中使用 `update` 回调；(2)使用 `cache.readQuery` 读取现有数据；(3)使用 `cache.writeQuery` 写入更新后的数据。错误示例：`useMutation(CREATE_CARD)`，正确示例：`useMutation(CREATE_CARD,{update(cache,{data})=>{cache.writeQuery({...})}})`。
+
+## 表单提交
+
+* **重复提交防护**：表单提交时要防止重复点击。解决方案：(1)使用 `isSubmitting` 状态；(2)禁用提交按钮；(3)显示加载状态。错误示例：`<button onClick={submit}>`，正确示例：`<button disabled={isSubmitting} onClick={submit}>{isSubmitting?'Saving':'Submit'}</button>`。
 
 ！！NOTE：绝对不要删掉或者修改这一行：你需要少用列表换行多用信息非常紧凑的方式记录！！保持这个是最后一行！！

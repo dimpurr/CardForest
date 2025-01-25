@@ -15,7 +15,13 @@ interface TemplateEditorProps {
 export function TemplateEditor({ mode, template }: TemplateEditorProps) {
   const router = useRouter();
   const [name, setName] = useState(template?.name || '');
-  const [inheritsFrom, setInheritsFrom] = useState<string[]>(template?.inherits_from || []);
+  const [inheritsFrom, setInheritsFrom] = useState<string[]>(() => {
+    // Initialize with parent templates and ensure they can't be removed
+    const parentTemplates = template?.fields
+      ?.filter(group => group._inherit_from !== '_self')
+      .map(group => `templates/${group._inherit_from}`) || [];
+    return parentTemplates;
+  });
   const [fields, setFields] = useState<FieldGroup[]>(
     template?.fields || [{ _inherit_from: '_self', fields: [] }]
   );
@@ -112,6 +118,7 @@ export function TemplateEditor({ mode, template }: TemplateEditorProps) {
         <TemplateInheritanceSelector
           availableTemplates={availableTemplates}
           selectedTemplates={inheritsFrom}
+          currentTemplateId={template?._id || ''}
           onChange={setInheritsFrom}
         />
       </div>

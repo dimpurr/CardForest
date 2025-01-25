@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { ArangoDBService } from './arangodb.service';
 import { TemplateService } from './template.service';
 import { Database } from 'arangojs';
@@ -21,6 +21,7 @@ interface UpdateCardDto {
 @Injectable()
 export class CardService {
   private db: Database;
+  private readonly logger = new Logger(CardService.name);
 
   constructor(
     private readonly arangoDBService: ArangoDBService,
@@ -34,8 +35,8 @@ export class CardService {
     user: any, // JWT user data
   ): Promise<any> {
     try {
-      console.log('Creating card with input:', JSON.stringify(input, null, 2));
-      console.log('User data:', user);
+      this.logger.log('Creating card with input:', JSON.stringify(input, null, 2));
+      this.logger.log('User data:', user);
 
       // Validate input fields
       if (!input.templateId || typeof input.templateId !== 'string') {
@@ -51,7 +52,7 @@ export class CardService {
         throw new Error('Invalid card data: body must be a string');
       }
       if (!input.meta || typeof input.meta !== 'object') {
-        console.log('Meta is missing or invalid, initializing empty object');
+        this.logger.log('Meta is missing or invalid, initializing empty object');
         input.meta = {};
       }
 
@@ -70,7 +71,7 @@ export class CardService {
         body: input.body,
         meta: input.meta,
       };
-      console.log('Card data prepared for validation:', JSON.stringify(cardData, null, 2));
+      this.logger.log('Card data prepared for validation:', JSON.stringify(cardData, null, 2));
 
       // Validate against template
       await this.templateService.validateCardData(template, cardData);
@@ -88,7 +89,7 @@ export class CardService {
       };
       
       const card = await cardsCollection.save(cardDoc);
-      console.log('Card created successfully:', JSON.stringify(card, null, 2));
+      this.logger.log('Card created successfully:', JSON.stringify(card, null, 2));
 
       // Return the complete card with all required fields
       return {
@@ -99,12 +100,13 @@ export class CardService {
         createdBy: {
           _id: `users/${user.sub}`,
           _key: user.sub,
+          username: user.name || user.email || user.sub,
           provider: user.provider,
           providerId: user.providerId
         }
       };
     } catch (error) {
-      console.error('Failed to create card:', error);
+      this.logger.error('Failed to create card:', error);
       throw error;
     }
   }
@@ -119,20 +121,18 @@ export class CardService {
               FILTER t._key == card.templateId
               RETURN t
           )
-          LET creator = FIRST(
-            FOR user IN users
-              FILTER user._id == card.createdBy
+          LET user = FIRST(
+            FOR u IN users
+              FILTER u._id == card.createdBy
               RETURN {
-                username: user.username
+                _id: u._id,
+                _key: u._key,
+                username: u.username || u.name || u.email || u._key,
+                provider: u.provider,
+                providerId: u.providerId
               }
           )
-          RETURN MERGE(
-            UNSET(card, ['createdBy']),
-            { 
-              createdBy: creator,
-              template: template
-            }
-          )
+          RETURN MERGE(card, { template, createdBy: user })
       `;
       const cursor = await this.db.query(query, { cardId });
       const card = await cursor.next();
@@ -141,7 +141,7 @@ export class CardService {
       }
       return card;
     } catch (error) {
-      console.error('Failed to get card:', error);
+      this.logger.error('Failed to get card:', error);
       throw error;
     }
   }
@@ -155,25 +155,23 @@ export class CardService {
               FILTER t._key == card.templateId
               RETURN t
           )
-          LET creator = FIRST(
-            FOR user IN users
-              FILTER user._id == card.createdBy
+          LET user = FIRST(
+            FOR u IN users
+              FILTER u._id == card.createdBy
               RETURN {
-                username: user.username
+                _id: u._id,
+                _key: u._key,
+                username: u.username || u.name || u.email || u._key,
+                provider: u.provider,
+                providerId: u.providerId
               }
           )
-          RETURN MERGE(
-            UNSET(card, ['createdBy']),
-            { 
-              createdBy: creator,
-              template: template
-            }
-          )
+          RETURN MERGE(card, { template, createdBy: user })
       `;
       const cursor = await this.db.query(query);
       return cursor.all();
     } catch (error) {
-      console.error('Failed to get cards:', error);
+      this.logger.error('Failed to get cards:', error);
       return [];
     }
   }
@@ -183,43 +181,80 @@ export class CardService {
       const usersCollection = this.db.collection('users');
       const userRef = `${usersCollection.name}/${userId}`;
       
-      console.log('Getting cards for user:', { userId, userRef });
+      this.logger.log('Getting cards for user:', { userId, userRef });
       
       const query = `
         FOR card IN cards
-          FILTER card.createdBy == null || card.createdBy == @userRef
+          FILTER card.createdBy == @userId
           LET template = FIRST(
             FOR t IN templates
               FILTER t._key == card.templateId
               RETURN t
           )
-          LET creator = FIRST(
-            FOR user IN users
-              FILTER user._id == card.createdBy
+          LET user = FIRST(
+            FOR u IN users
+              FILTER u._id == card.createdBy
               RETURN {
-                _key: user._key,
-                _id: user._id,
-                username: user.username,
-                provider: user.provider,
-                providerId: user.providerId
+                _id: u._id,
+                _key: u._key,
+                username: u.username || u.name || u.email || u._key,
+                provider: u.provider,
+                providerId: u.providerId
               }
           )
-          RETURN MERGE(
-            UNSET(card, ['createdBy']),
-            { 
-              createdBy: creator,
-              template: template
-            }
-          )
+          RETURN MERGE(card, { template, createdBy: user })
       `;
       
-      console.log('Running query with params:', { userRef });
-      const cursor = await this.db.query(query, { userRef });
+      this.logger.log('Running query with params:', { userId });
+      const cursor = await this.db.query(query, { userId });
       const results = await cursor.all();
-      console.log('Found cards:', results.length);
+      this.logger.log('Found cards:', results.length);
       return results;
     } catch (error) {
-      console.error('Failed to get user cards:', error);
+      this.logger.error('Failed to get user cards:', error);
+      throw error;
+    }
+  }
+
+  async getMyCards(userId: string): Promise<any[]> {
+    try {
+      const usersCollection = this.db.collection('users');
+      const userRef = `${usersCollection.name}/${userId}`;
+      
+      this.logger.debug('Getting cards for user:', { userId, userRef });
+      
+      const query = `
+        FOR card IN cards
+          FILTER card.createdBy == @userRef
+          LET template = FIRST(
+            FOR t IN templates
+              FILTER t._key == card.templateId
+              RETURN t
+          )
+          LET user = FIRST(
+            FOR u IN users
+              FILTER u._id == card.createdBy
+              RETURN {
+                _id: u._id,
+                _key: u._key,
+                username: u.username || u.name || u.email || u._key,
+                provider: u.provider,
+                providerId: u.providerId
+              }
+          )
+          SORT card.createdAt DESC
+          RETURN MERGE(card, { template, createdBy: user })
+      `;
+      
+      const bindVars = { userRef };
+      this.logger.debug('Running query with params:', bindVars);
+      
+      const cursor = await this.db.query(query, bindVars);
+      const cards = await cursor.all();
+      this.logger.debug('Found cards:', cards.length);
+      return cards;
+    } catch (error) {
+      this.logger.error('Error getting cards:', error);
       throw error;
     }
   }
@@ -240,7 +275,7 @@ export class CardService {
 
       // 验证更新数据
       if (updates.meta) {
-        console.log('Card data before validation:', {
+        this.logger.log('Card data before validation:', {
           templateId: card.template._key,
           title: card.title,
           content: card.content,
@@ -271,7 +306,7 @@ export class CardService {
       await collection.update(cardId, updateData);
       return this.getCardById(cardId);
     } catch (error) {
-      console.error('Failed to update card:', error);
+      this.logger.error('Failed to update card:', error);
       throw error;
     }
   }
@@ -289,7 +324,7 @@ export class CardService {
       await collection.remove(cardId);
       return true;
     } catch (error) {
-      console.error('Failed to delete card:', error);
+      this.logger.error('Failed to delete card:', error);
       throw error;
     }
   }
@@ -331,7 +366,7 @@ export class CardService {
       const cursor = await this.db.query(query);
       return cursor.all();
     } catch (error) {
-      console.error('Failed to get cards with relations:', error);
+      this.logger.error('Failed to get cards with relations:', error);
       return [];
     }
   }
@@ -353,7 +388,7 @@ export class CardService {
         createdBy: `users/${userId}`,
       });
     } catch (error) {
-      console.error('Failed to create relation:', error);
+      this.logger.error('Failed to create relation:', error);
       throw error;
     }
   }
