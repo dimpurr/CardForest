@@ -16,7 +16,7 @@
 ## 模板与卡片系统
 * 模板字段验证：基础模板必须使用_inherit_from:'_self'，继承模板使用_inherit_from:templateKey。验证时basic/meta字段分开验证，meta字段在cardData.meta下。createUser需分别传入username和password参数而非对象。模板字段验证时需区分基础字段和元字段位置，避免字段定义和数据结构不匹配。
 * 模板字段处理：继承模板的字段分为两类：1)当前模板字段(_inherit_from:templateId)；2)继承字段(_inherit_from:'_self')。处理时需要先将当前模板字段标记为_self，然后添加继承模板的_self字段。不要用继承字段替换当前字段，而是构建包含两者的新字段数组。
-* 模板继承UI规则：继承选择界面中，当前模板自身需要被禁用且永远不选中(disabled+unchecked)，已继承的父模板需要被禁用且永远选中(disabled+checked)，只有其他独立模板可以被自由选择。这确保了继承关系的单向性和一致性，避免循环继承。
+* 模板继承UI规则：继承选择界面中，当前模板自身需要被禁用且永远不选中(disabled+unchecked)，已继承的父模板需要被禁用且永远选中(disabled+checked)，只有其他独立模板可以被自由选择。这确保了继承关系的单向性和一致性，避免循环继承。父模板状态初始化必须从template.fields中的_inherit_from提取(排除'_self')，而非使用template.inherits_from。模板ID需要加'templates/'前缀。
 * 卡片创建格式：CreateCardInput必须分开处理基础字段(title/content/body)和meta字段。基础字段直接放在input对象中，其他字段放在meta对象中。不要使用fields数组格式，这是旧版本的格式已废弃。
 * API命名规范：使用my前缀表示当前用户相关查询如myCards而非userCards，使用full后缀表示包含完整关联数据的查询如card/full，需保持命名一致性避免同一概念使用不同名称。模板系统支持从基础模板到特化模板的继承关系，字段定义包含验证规则和UI展示信息，自动处理系统字段。卡片系统包含title/content/body基础字段，使用meta字段存储模板特定数据，通过relations集合管理父子关系。数据关联使用_key而非完整_id路径，GraphQL查询需要通过AQL JOIN获取完整关联对象。
 
