@@ -7,10 +7,12 @@ import { useQuery, gql } from '@apollo/client';
 import { useJWT } from '@/hooks/useJWT';
 import { useAtom } from 'jotai';
 import { cardsAtom, sortedCardsAtom } from '@/store/cards';
+import { cardViewsConfigAtom } from '@/atoms/cardViews';
 import { Layout } from '@/components/Layout';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { signIn } from 'next-auth/react';
+import { ViewSwitcher } from '@/components/card-views/ViewSwitcher';
 
 const GET_MY_CARDS = gql`
   query GetMyCards {
@@ -36,11 +38,12 @@ interface Card {
   };
 }
 
-export default function CardListView() {
+export default function CardViews() {
   const { data: session, status: sessionStatus } = useSession();
   const { jwt, isAuthenticated, status: jwtStatus } = useJWT();
   const [, setCards] = useAtom(cardsAtom);
   const [sortedCards] = useAtom(sortedCardsAtom);
+  const [viewConfig] = useAtom(cardViewsConfigAtom);
 
   const { loading, error, data } = useQuery(GET_MY_CARDS, {
     skip: !isAuthenticated,
@@ -164,14 +167,41 @@ export default function CardListView() {
     );
   }
 
-  return (
-    <Layout>
-      <div className="p-6">
-        <h1 className="text-2xl font-bold mb-4">Card List View</h1>
-        <div className="w-full border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+  const renderView = () => {
+    switch (viewConfig.currentView) {
+      case 'table':
+        return (
           <TableProvider data={sortedCards} columns={columns}>
             {(table) => <Table table={table} />}
           </TableProvider>
+        );
+      case 'gallery':
+        return <div>Gallery View (Coming Soon)</div>;
+      case 'kanban':
+        return <div>Kanban View (Coming Soon)</div>;
+      case 'feed':
+        return <div>Feed View (Coming Soon)</div>;
+      case 'article':
+        return <div>Article View (Coming Soon)</div>;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <Layout>
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Cards</h1>
+          <div className="flex items-center space-x-4">
+            <ViewSwitcher />
+            <div className="flex space-x-2">
+              {/* 这里可以添加其他操作按钮 */}
+            </div>
+          </div>
+        </div>
+        <div className="h-[calc(100vh-12rem)] border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+          {renderView()}
         </div>
       </div>
     </Layout>

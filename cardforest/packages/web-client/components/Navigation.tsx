@@ -18,7 +18,7 @@ export function Navigation() {
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
               <Link
-                href="/cards"
+                href="/cards/views"
                 className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
                   router.pathname.startsWith('/cards')
                     ? 'border-blue-500 text-gray-900 dark:text-white'
@@ -66,7 +66,7 @@ export function Navigation() {
       <div className="sm:hidden">
         <div className="pt-2 pb-3 space-y-1">
           <Link
-            href="/cards"
+            href="/cards/views"
             className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
               router.pathname.startsWith('/cards')
                 ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-900 dark:text-blue-200'
