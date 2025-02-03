@@ -3,6 +3,7 @@ import { Model, FieldDefinition } from '@/types/model';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { TiptapEditor } from '@/components/ui/TiptapEditor';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { DebugPanel } from '@/components/debug/DebugPanel';
 import { useEffect } from 'react';
@@ -51,6 +52,13 @@ export function CardForm({ model, onSubmit, defaultValues = {} }: CardFormProps)
               case 'textarea':
                 return (
                   <Textarea
+                    {...formField}
+                    placeholder={config.placeholder || `Enter ${name}`}
+                  />
+                );
+              case 'richtext':
+                return (
+                  <TiptapEditor
                     {...formField}
                     placeholder={config.placeholder || `Enter ${name}`}
                   />
