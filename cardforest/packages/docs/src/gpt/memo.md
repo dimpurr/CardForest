@@ -92,4 +92,9 @@
 
 * **重复提交防护**：表单提交时要防止重复点击。解决方案：(1)使用 `isSubmitting` 状态；(2)禁用提交按钮；(3)显示加载状态。错误示例：`<button onClick={submit}>`，正确示例：`<button disabled={isSubmitting} onClick={submit}>{isSubmitting?'Saving':'Submit'}</button>`。
 
+## 卡片列表视图开发要点
+
+* 表格过滤系统：过滤功能使用 TanStack Table 的 columnFilters，支持多种过滤模式（contains/equals/startsWith/endsWith）。过滤状态通过 Jotai atom 管理并持久化到 localStorage。过滤器 UI 使用 Radix UI 的 Popover 和 Select 组件实现。过滤操作全部大小写不敏感。
+* 列设置功能：使用 @dnd-kit 实现列顺序拖拽调整，使用 Radix UI 的 Popover 和 Checkbox 组件实现列显示/隐藏控制。列设置状态（顺序、可见性、宽度）通过 Jotai atom 管理并持久化到 localStorage。列设置 UI 支持暗色模式。
+
 ！！NOTE：绝对不要删掉或者修改这一行：你需要少用列表换行多用信息非常紧凑的方式记录！！保持这个是最后一行！！
