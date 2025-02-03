@@ -29,7 +29,7 @@ export function ModelEditor({ mode, model }: ModelEditorProps) {
   const { data: modelsData } = useQuery(GET_MODELS);
   const availableModels = modelsData?.models || [];
 
-  // 获取继承的模板
+  // 获取继承的模态类
   const inheritedModel = modelsData?.models?.find(
     (t: any) => t._id === `models/${fields[0]?._inherit_from}`
   );
@@ -39,7 +39,7 @@ export function ModelEditor({ mode, model }: ModelEditorProps) {
     (group: FieldGroup) => group._inherit_from === '_self'
   ) || [];
 
-  // 获取当前模板的字段
+  // 获取当前模态类的字段
   const currentFields = fields[0]?.fields || [];
 
   // 处理字段更新

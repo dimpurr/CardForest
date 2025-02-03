@@ -1,7 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { ArangoDBService } from './arangodb.service';
 import { Database, aql } from 'arangojs';
-import { Model, FieldDefinition, FieldGroup, FlattenedModel } from '../interfaces/model.interface';
+import {
+  Model,
+  FieldDefinition,
+  FieldGroup,
+  FlattenedModel,
+} from '../interfaces/model.interface';
 
 @Injectable()
 export class ModelService {
@@ -16,7 +21,7 @@ export class ModelService {
   async getModels(): Promise<FlattenedModel[]> {
     try {
       const models = await this.getModelsWithFields();
-      return models.map(model => this.flattenModel(model));
+      return models.map((model) => this.flattenModel(model));
     } catch (error) {
       console.error('Failed to get models:', error);
       throw error;
@@ -79,7 +84,7 @@ export class ModelService {
     }
 
     const inheritedModels = await Promise.all(
-      model.inherits_from.map(parentId => this.getFullModelById(parentId))
+      model.inherits_from.map((parentId) => this.getFullModelById(parentId)),
     );
 
     // Merge fields from inherited models
@@ -129,12 +134,12 @@ export class ModelService {
   }
 
   validateFields(fields: FieldGroup[]): void {
-    fields.forEach(group => {
+    fields.forEach((group) => {
       if (!group._inherit_from) {
         throw new Error('Field group must have _inherit_from property');
       }
 
-      group.fields.forEach(field => {
+      group.fields.forEach((field) => {
         if (!field.name || !field.type) {
           throw new Error('Field must have name and type');
         }
@@ -144,9 +149,13 @@ export class ModelService {
         }
 
         // Validate select/multiselect options
-        if ((field.type === 'select' || field.type === 'multiselect') && 
-            (!field.config?.options || !Array.isArray(field.config.options))) {
-          throw new Error(`${field.type} field must have options array in config`);
+        if (
+          (field.type === 'select' || field.type === 'multiselect') &&
+          (!field.config?.options || !Array.isArray(field.config.options))
+        ) {
+          throw new Error(
+            `${field.type} field must have options array in config`,
+          );
         }
       });
     });
@@ -154,14 +163,21 @@ export class ModelService {
 
   validateCardData(model: Model, cardData: any): void {
     // Get all field groups
-    const basicGroup = model.fields.find(g => g._inherit_from === '_self' || g._inherit_from === 'basic');
-    const metaGroups = model.fields.filter(g => g._inherit_from !== '_self' && g._inherit_from !== 'basic');
+    const basicGroup = model.fields.find(
+      (g) => g._inherit_from === '_self' || g._inherit_from === 'basic',
+    );
+    const metaGroups = model.fields.filter(
+      (g) => g._inherit_from !== '_self' && g._inherit_from !== 'basic',
+    );
 
     // Validate basic fields
     if (basicGroup) {
-      basicGroup.fields.forEach(field => {
+      basicGroup.fields.forEach((field) => {
         const value = cardData[field.name];
-        if (field.required && (value === undefined || value === null || value === '')) {
+        if (
+          field.required &&
+          (value === undefined || value === null || value === '')
+        ) {
           throw new Error(`Missing required field: ${field.name}`);
         }
         if (value !== undefined && value !== null) {
@@ -172,10 +188,13 @@ export class ModelService {
 
     // Validate meta fields
     if (cardData.meta) {
-      metaGroups.forEach(group => {
-        group.fields.forEach(field => {
+      metaGroups.forEach((group) => {
+        group.fields.forEach((field) => {
           const value = cardData.meta[field.name];
-          if (field.required && (value === undefined || value === null || value === '')) {
+          if (
+            field.required &&
+            (value === undefined || value === null || value === '')
+          ) {
             throw new Error(`Missing required field: ${field.name}`);
           }
           if (value !== undefined && value !== null) {
@@ -186,7 +205,11 @@ export class ModelService {
     }
   }
 
-  private validateFieldValue(fieldName: string, value: any, field: FieldDefinition): void {
+  private validateFieldValue(
+    fieldName: string,
+    value: any,
+    field: FieldDefinition,
+  ): void {
     if (value === undefined || value === null || value === '') {
       if (field.required) {
         throw new Error(`Required field ${fieldName} cannot be empty`);
@@ -203,7 +226,9 @@ export class ModelService {
           throw new Error(`Field ${fieldName} must be a string`);
         }
         if (field.config?.maxLength && value.length > field.config.maxLength) {
-          throw new Error(`Field ${fieldName} exceeds maximum length of ${field.config.maxLength}`);
+          throw new Error(
+            `Field ${fieldName} exceeds maximum length of ${field.config.maxLength}`,
+          );
         }
         break;
 
@@ -227,13 +252,24 @@ export class ModelService {
 
       case 'select':
         if (!field.config?.options?.includes(value)) {
-          throw new Error(`Invalid value for field ${fieldName}. Must be one of: ${field.config?.options?.join(', ')}`);
+          throw new Error(
+            `Invalid value for field ${fieldName}. Must be one of: ${field.config?.options?.join(
+              ', ',
+            )}`,
+          );
         }
         break;
 
       case 'multiselect':
-        if (!Array.isArray(value) || !value.every(v => field.config?.options?.includes(v))) {
-          throw new Error(`Invalid values for field ${fieldName}. Each value must be one of: ${field.config?.options?.join(', ')}`);
+        if (
+          !Array.isArray(value) ||
+          !value.every((v) => field.config?.options?.includes(v))
+        ) {
+          throw new Error(
+            `Invalid values for field ${fieldName}. Each value must be one of: ${field.config?.options?.join(
+              ', ',
+            )}`,
+          );
         }
         break;
 
@@ -247,7 +283,7 @@ export class ModelService {
 
   async createModel(
     input: { name: string; fields: FieldGroup[]; inherits_from?: string[] },
-    user: any
+    user: any,
   ): Promise<Model> {
     this.validateFields(input.fields);
 
@@ -305,7 +341,7 @@ export class ModelService {
         throw new Error('Cannot delete system model');
       }
 
-      // 检查是否有其他模板继承自此模板
+      // 检查是否有其他模态类继承自此模态类
       const query = aql`
         FOR t IN models
         FILTER t.inherits_from == ${modelId}
@@ -317,7 +353,7 @@ export class ModelService {
         throw new Error('Cannot delete model with children');
       }
 
-      // 检查是否有卡片使用此模板
+      // 检查是否有卡片使用此模态类
       const cardQuery = aql`
         FOR card IN cards
         FILTER card.model == ${modelId}
