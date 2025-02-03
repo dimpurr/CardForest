@@ -28,7 +28,7 @@ cardforest/
 1. [认证系统](./modules/auth.md)
 2. [用户系统](./modules/user.md)
 3. [卡片系统](./modules/card.md)
-4. [模板系统](./modules/template.md)
+4. [模板系统](./modules/model.md)
    - 原型链式模板继承
    - 字段按来源分组
    - 扁平化字段兼容层
@@ -63,7 +63,7 @@ cardforest/
 
 ```typescript
 // 模板定义
-interface Template {
+interface Model {
   name: string;
   inherits_from: string[];  // 继承链
   fields: FieldGroup[];     // 按来源分组的字段

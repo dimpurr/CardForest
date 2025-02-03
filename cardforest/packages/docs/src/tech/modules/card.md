@@ -10,7 +10,7 @@
 ```typescript
 interface Card {
   _key: string;         // ArangoDB 文档键
-  template: string;     // 模板引用
+  model: string;     // 模板引用
   title: string;        // 标题（基础字段）
   body?: string;        // 主体内容（基础字段）
   content?: string;     // 富文本内容（基础字段）
@@ -72,7 +72,7 @@ async createCardRelation(fromId: string, toId: string, type: string) {
 ### 集合
 1. `cards`：存储卡片数据
 2. `card_relations`：存储卡片间的关系
-3. `templates`：存储模板定义
+3. `models`：存储模板定义
 
 ### 示例查询
 ```aql

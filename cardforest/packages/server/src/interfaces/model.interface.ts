@@ -8,17 +8,17 @@ export interface FieldDefinition {
 }
 
 export interface FieldGroup {
-  _inherit_from: string;  // Template name this group inherits from
+  _inherit_from: string;  // Model name this group inherits from
   fields: FieldDefinition[];
 }
 
-export interface Template {
+export interface Model {
   _key?: string;
   _id?: string;
   _rev?: string;
   name: string;
-  inherits_from: string[];  // List of templates this template inherits from
-  fields: FieldGroup[];     // Fields grouped by their source template
+  inherits_from: string[];  // List of models this model inherits from
+  fields: FieldGroup[];     // Fields grouped by their source model
   system: boolean;
   createdAt: string;
   updatedAt?: string;
@@ -26,7 +26,7 @@ export interface Template {
 }
 
 // Helper type for the flattened view used in the GraphQL API
-export interface FlattenedTemplate {
+export interface FlattenedModel {
   _key?: string;
   _id?: string;
   _rev?: string;

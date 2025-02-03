@@ -9,7 +9,7 @@
 /* eslint-disable */
 
 export interface CreateCardInput {
-    template: string;
+    model: string;
     title: string;
     content?: Nullable<string>;
     body?: Nullable<string>;
@@ -23,13 +23,13 @@ export interface UpdateCardInput {
     meta?: Nullable<JSON>;
 }
 
-export interface CreateTemplateInput {
+export interface CreateModelInput {
     name: string;
     extends?: Nullable<string>;
     fields: JSON;
 }
 
-export interface UpdateTemplateInput {
+export interface UpdateModelInput {
     name?: Nullable<string>;
     fields?: Nullable<JSON>;
 }
@@ -39,17 +39,17 @@ export interface IQuery {
     cards(): Nullable<Nullable<Card>[]> | Promise<Nullable<Nullable<Card>[]>>;
     myCards(): Nullable<Nullable<Card>[]> | Promise<Nullable<Nullable<Card>[]>>;
     card(id: string): Nullable<Card> | Promise<Nullable<Card>>;
-    templates(): Nullable<Nullable<Template>[]> | Promise<Nullable<Nullable<Template>[]>>;
-    template(id: string): Nullable<Template> | Promise<Nullable<Template>>;
+    models(): Nullable<Nullable<Model>[]> | Promise<Nullable<Nullable<Model>[]>>;
+    model(id: string): Nullable<Model> | Promise<Nullable<Model>>;
 }
 
 export interface IMutation {
     createCard(input: CreateCardInput): Nullable<Card> | Promise<Nullable<Card>>;
     updateCard(id: string, input: UpdateCardInput): Nullable<Card> | Promise<Nullable<Card>>;
     deleteCard(id: string): Nullable<boolean> | Promise<Nullable<boolean>>;
-    createTemplate(input: CreateTemplateInput): Nullable<Template> | Promise<Nullable<Template>>;
-    updateTemplate(id: string, input: UpdateTemplateInput): Nullable<Template> | Promise<Nullable<Template>>;
-    deleteTemplate(id: string): Nullable<boolean> | Promise<Nullable<boolean>>;
+    createModel(input: CreateModelInput): Nullable<Model> | Promise<Nullable<Model>>;
+    updateModel(id: string, input: UpdateModelInput): Nullable<Model> | Promise<Nullable<Model>>;
+    deleteModel(id: string): Nullable<boolean> | Promise<Nullable<boolean>>;
 }
 
 export interface User {
@@ -59,7 +59,7 @@ export interface User {
     cards?: Nullable<Nullable<Card>[]>;
 }
 
-export interface Template {
+export interface Model {
     _id: string;
     name: string;
     extends?: Nullable<string>;
@@ -72,7 +72,7 @@ export interface Template {
 
 export interface Card {
     _id: string;
-    template: Template;
+    model: Model;
     title: string;
     content?: Nullable<string>;
     body?: Nullable<string>;

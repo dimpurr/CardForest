@@ -2,24 +2,24 @@ import { Injectable } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CardService } from './card.service';
 import { ArangoDBService } from './arangodb.service';
-import { TemplateService } from './template.service';
+import { ModelService } from './model.service';
 import { Database } from 'arangojs';
 import * as bcrypt from 'bcrypt';
-import { FieldGroup } from '../interfaces/template.interface';
+import { FieldGroup } from '../interfaces/model.interface';
 
 // NOTE: This service is only used for the initial installation of the database.
 
 @Injectable()
 export class InstallService {
   private db: Database;
-  private basicTemplateKey: string;
-  private dateTemplateKey: string;
+  private basicModelKey: string;
+  private dateModelKey: string;
 
   constructor(
     private readonly userService: UserService,
     private readonly cardService: CardService,
     private readonly arangoDBService: ArangoDBService,
-    private readonly templateService: TemplateService,
+    private readonly modelService: ModelService,
   ) {
     this.db = this.arangoDBService.getDatabase();
   }
@@ -35,7 +35,7 @@ export class InstallService {
     await this.createCollections();
 
     // 创建基础模板
-    await this.createBaseTemplates();
+    await this.createBaseModels();
 
     // 创建测试数据
     await this.createTestData();
@@ -65,10 +65,10 @@ export class InstallService {
     }
 
     // 模板集合
-    const templates = this.db.collection('templates');
-    if (!(await templates.exists())) {
-      await templates.create();
-      console.log('Created templates collection');
+    const models = this.db.collection('models');
+    if (!(await models.exists())) {
+      await models.create();
+      console.log('Created models collection');
     }
 
     // 关系集合
@@ -79,11 +79,11 @@ export class InstallService {
     }
   }
 
-  private async createBaseTemplates() {
-    console.log('Creating base templates...');
+  private async createBaseModels() {
+    console.log('Creating base models...');
 
-    // Create basic template
-    const basicTemplateFields: FieldGroup[] = [
+    // Create basic model
+    const basicModelFields: FieldGroup[] = [
       {
         _inherit_from: '_self',
         fields: [
@@ -112,21 +112,21 @@ export class InstallService {
       },
     ];
 
-    const basicTemplate = await this.templateService.createTemplate(
+    const basicModel = await this.modelService.createModel(
       {
         name: 'basic',
-        fields: basicTemplateFields,
+        fields: basicModelFields,
         inherits_from: []
       },
       { sub: 'system' }
     );
-    this.basicTemplateKey = basicTemplate._key;
-    console.log('Created basic template:', basicTemplate._key);
+    this.basicModelKey = basicModel._key;
+    console.log('Created basic model:', basicModel._key);
 
-    // Create date template
-    const dateTemplateFields: FieldGroup[] = [
+    // Create date model
+    const dateModelFields: FieldGroup[] = [
       {
-        _inherit_from: this.basicTemplateKey,
+        _inherit_from: this.basicModelKey,
         fields: [
           {
             name: 'date',
@@ -152,34 +152,34 @@ export class InstallService {
       },
     ];
 
-    const dateTemplate = await this.templateService.createTemplate(
+    const dateModel = await this.modelService.createModel(
       {
         name: 'datecard',
-        fields: dateTemplateFields,
-        inherits_from: [this.basicTemplateKey]
+        fields: dateModelFields,
+        inherits_from: [this.basicModelKey]
       },
       { sub: 'system' }
     );
-    this.dateTemplateKey = dateTemplate._key;
-    console.log('Created date template:', dateTemplate._key);
+    this.dateModelKey = dateModel._key;
+    console.log('Created date model:', dateModel._key);
 
-    console.log('Base templates created successfully');
+    console.log('Base models created successfully');
   }
 
   private async createTestData() {
     try {
       console.log('Creating test data...');
-      console.log('Using basic template key:', this.basicTemplateKey);
-      console.log('Using date template key:', this.dateTemplateKey);
+      console.log('Using basic model key:', this.basicModelKey);
+      console.log('Using date model key:', this.dateModelKey);
 
       // Create test user
       const hashedPassword = await bcrypt.hash('test', 10);
       const testUser = await this.userService.createUser('test', hashedPassword);
       console.log('Created test user:', JSON.stringify(testUser, null, 2));
 
-      // Create test card with basic template
+      // Create test card with basic model
       const basicCardData = {
-        templateId: this.basicTemplateKey,
+        modelId: this.basicModelKey,
         title: 'Test Basic Card',
         body: 'This is a test card',
         content: '<p>This is a rich text content</p>',
@@ -188,9 +188,9 @@ export class InstallService {
       console.log('Creating test card with data:', JSON.stringify(basicCardData, null, 2));
       await this.cardService.createCard(basicCardData, testUser);
 
-      // Create test card with date template
+      // Create test card with date model
       const dateCardData = {
-        templateId: this.dateTemplateKey,
+        modelId: this.dateModelKey,
         title: 'Test Date Card',
         body: 'This is a test card with date fields',
         content: '<p>This is a rich text content for date card</p>',
@@ -230,7 +230,7 @@ export class InstallService {
   async createDefaultCard(userId: string): Promise<void> {
     await this.cardService.createCard(
       {
-        templateId: this.basicTemplateKey,
+        modelId: this.basicModelKey,
         title: 'Welcome to CardForest',
         content: '<p>This is your first card!</p>',
         body: 'Welcome to CardForest. This is your first card.',
@@ -243,21 +243,21 @@ export class InstallService {
   async createDefaultCards(userId: string): Promise<void> {
     const cards = [
       {
-        templateId: this.basicTemplateKey,
+        modelId: this.basicModelKey,
         title: 'Getting Started',
         content: '<p>Learn how to use CardForest</p>',
         body: 'Start here to learn the basics of CardForest.',
         meta: {},
       },
       {
-        templateId: this.basicTemplateKey,
-        title: 'Templates',
-        content: '<p>Create your own templates</p>',
-        body: 'Templates help you organize your cards consistently.',
+        modelId: this.basicModelKey,
+        title: 'Models',
+        content: '<p>Create your own models</p>',
+        body: 'Models help you organize your cards consistently.',
         meta: {},
       },
       {
-        templateId: this.basicTemplateKey,
+        modelId: this.basicModelKey,
         title: 'Relations',
         content: '<p>Connect your cards</p>',
         body: 'Create relations between cards to build a knowledge network.',

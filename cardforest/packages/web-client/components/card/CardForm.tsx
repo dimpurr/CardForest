@@ -1,5 +1,5 @@
 import { useForm, FormProvider } from 'react-hook-form';
-import { Template, FieldDefinition } from '@/types/template';
+import { Model, FieldDefinition } from '@/types/model';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -8,17 +8,17 @@ import { DebugPanel } from '@/components/debug/DebugPanel';
 import { useEffect } from 'react';
 
 interface CardFormProps {
-  template: Template;
+  model: Model;
   onSubmit: (data: any) => void;
   defaultValues?: Record<string, any>;
 }
 
-export function CardForm({ template, onSubmit, defaultValues = {} }: CardFormProps) {
+export function CardForm({ model, onSubmit, defaultValues = {} }: CardFormProps) {
   const form = useForm({
     defaultValues,
   });
 
-  const { fields } = template;
+  const { fields } = model;
 
   // 将 form 对象传递给父组件
   useEffect(() => {
@@ -105,7 +105,7 @@ export function CardForm({ template, onSubmit, defaultValues = {} }: CardFormPro
         </div>
 
         {/* 模板字段 */}
-        {template.fields.map((group, index) => (
+        {model.fields.map((group, index) => (
           <div key={index} className="space-y-4">
             <h3 className="text-lg font-medium">
               {group._inherit_from === '_self'

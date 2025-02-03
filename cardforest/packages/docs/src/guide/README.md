@@ -47,15 +47,15 @@ CardForest 是一个个人数据库/知识库/笔记软件，致力于将记录�
 - CardRecord 的模板类型。
 - CardRecord 分为 meta 区和 Content 区。
 
-### 3. 右侧区域：Model 和 Template
+### 3. 右侧区域：Model 和 Model
 
 #### Model
 
 定义 CardRecord 的数据结构。例如，一个名为“todo”的 model 可能有一系列特定的字段。
 
-#### Template
+#### Model
 
-将 Model、一系列值和 Nodes 绑定在一起。用户可以通过 Template 快速创建具有预定义属性和值的 CardRecord。
+将 Model、一系列值和 Nodes 绑定在一起。用户可以通过 Model 快速创建具有预定义属性和值的 CardRecord。
 
 ## CardRecord 的结构
 
@@ -94,15 +94,15 @@ cardf://[localhost|custhost.com|cardforest.dim.moe]/~username/(mutex/node/path/.
 - `cardf://` 是协议头，表示这是一个 CardForest URL。
 - `[localhost|custhost.com|cardforest.dim.moe]` 是服务器地址部分，可以是 `localhost`（本地主机），`custhost.com`（自定义的托管服务器）或 `cardforest.dim.moe`（官方托管服务器）。
 - `~username` 是用户名部分，用于标识用户。
-- `(mutex/node/path/.. or _uncategorized or _files)` 是资源路径部分，表示资源所属的路径。路径可以是 `mutex`（Mutex Node Group），`node`（Non-Mutex Node Group）或具体的路径。如果资源没有归属于任何节点组，则使用 `_uncategorized`。如果资源是附件、RuleSet、Template 或 Perspective，则使用 `_files`。
-- `(slug or _key)` 是资源的自定义标识符或唯一标识符，用于标识具体的文件、RuleSet、Template 或 Perspective。
+- `(mutex/node/path/.. or _uncategorized or _files)` 是资源路径部分，表示资源所属的路径。路径可以是 `mutex`（Mutex Node Group），`node`（Non-Mutex Node Group）或具体的路径。如果资源没有归属于任何节点组，则使用 `_uncategorized`。如果资源是附件、RuleSet、Model 或 Perspective，则使用 `_files`。
+- `(slug or _key)` 是资源的自定义标识符或唯一标识符，用于标识具体的文件、RuleSet、Model 或 Perspective。
 
 根据这个规则，可以唯一标识和访问 CardForest 中的各种资源，例如：
 
 - 卡片资源：`cardf://cardforest.dim.moe/~username/node/group1/card1`
 - 附件资源：`cardf://cardforest.dim.moe/~username/_files/attachment1`
 - RuleSet 资源：`cardf://cardforest.dim.moe/~username/_rulesets/ruleset1`
-- Template 资源：`cardf://cardforest.dim.moe/~username/_templates/template1`
+- Model 资源：`cardf://cardforest.dim.moe/~username/_models/model1`
 - Perspective 资源：`cardf://cardforest.dim.moe/~username/_perspectives/perspective1`
 
 这样的标识可以用于分享和访问 CardForest 中的资源。

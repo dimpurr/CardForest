@@ -6,7 +6,7 @@ CardForest is a modern knowledge management application that helps you organize 
 
 - Rich text editing with TipTap
 - Visual relationship mapping with React Flow
-- Customizable card templates
+- Customizable card models
 - Dark mode support
 - Cross-platform support (Web & Desktop)
 

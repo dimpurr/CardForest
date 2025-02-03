@@ -10,7 +10,7 @@
   - `value`: 实际的内容值，以 JSON 字符串表示，根据类型的不同可以是字符串、富文本格式或树状列表结构的 JSON 字符串。
 - created_at: 创建时间，记录卡片创建的日期和时间。
 - modified_at: 修改时间，记录卡片最后修改的日期和时间。
-- template: 指示卡片是否基于某个模板创建，存储模板的名称。
+- model: 指示卡片是否基于某个模板创建，存储模板的名称。
 - nodes: 表示卡片所属的节点列表，包括 Mutex Node 和 Non-Mutex Nodes。按顺序显示 Mutex Node，然后显示 Non-Mutex Nodes。
 - meta: 卡片的元数据字段集合，用于存储一组元数据。
   - meta_name: 元数据名称，描述元数据字段的名称。

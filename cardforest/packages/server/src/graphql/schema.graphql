@@ -22,7 +22,7 @@ type FieldGroup {
   fields: [FieldDefinition!]!
 }
 
-type Template {
+type Model {
   _key: ID!
   _id: ID!
   _rev: String
@@ -38,8 +38,8 @@ type Template {
 type Card {
   _key: ID!
   _id: ID!
-  templateId: ID!
-  template: Template 
+  modelId: ID!
+  model: Model 
   title: String!
   content: String
   body: String
@@ -72,20 +72,20 @@ input FieldGroupInput {
   fields: [FieldDefinitionInput!]!
 }
 
-input CreateTemplateInput {
+input CreateModelInput {
   name: String!
   inherits_from: [String!]
   fields: [FieldGroupInput!]!
 }
 
-input UpdateTemplateInput {
+input UpdateModelInput {
   name: String
   inherits_from: [String!]
   fields: [FieldGroupInput!]
 }
 
 input CreateCardInput {
-  templateId: ID!
+  modelId: ID!
   title: String!
   content: String
   body: String
@@ -103,10 +103,10 @@ type Query {
   # User related
   me: User
 
-  # Template related
-  template(id: ID!): Template
-  templates: [Template!]!
-  flattenedTemplate(id: ID!): Template
+  # Model related
+  model(id: ID!): Model
+  models: [Model!]!
+  flattenedModel(id: ID!): Model
 
   # Card related
   card(id: ID!): Card
@@ -120,10 +120,10 @@ type Mutation {
   login(username: String!, password: String!): AuthResponse!
   register(username: String!, password: String!): User!
 
-  # Template related
-  createTemplate(input: CreateTemplateInput!): Template!
-  updateTemplate(id: ID!, input: UpdateTemplateInput!): Template!
-  deleteTemplate(id: ID!): Boolean!
+  # Model related
+  createModel(input: CreateModelInput!): Model!
+  updateModel(id: ID!, input: UpdateModelInput!): Model!
+  deleteModel(id: ID!): Boolean!
 
   # Card related
   createCard(input: CreateCardInput!): Card!

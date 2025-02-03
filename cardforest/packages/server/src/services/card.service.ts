@@ -1,10 +1,10 @@
 import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { ArangoDBService } from './arangodb.service';
-import { TemplateService } from './template.service';
+import { ModelService } from './model.service';
 import { Database } from 'arangojs';
 
 interface CreateCardDto {
-  templateId: string;
+  modelId: string;
   title: string;
   content?: string;
   body?: string;
@@ -25,7 +25,7 @@ export class CardService {
 
   constructor(
     private readonly arangoDBService: ArangoDBService,
-    private readonly templateService: TemplateService,
+    private readonly modelService: ModelService,
   ) {
     this.db = this.arangoDBService.getDatabase();
   }
@@ -39,8 +39,8 @@ export class CardService {
       this.logger.log('User data:', user);
 
       // Validate input fields
-      if (!input.templateId || typeof input.templateId !== 'string') {
-        throw new Error('Invalid card data: templateId is required and must be a string');
+      if (!input.modelId || typeof input.modelId !== 'string') {
+        throw new Error('Invalid card data: modelId is required and must be a string');
       }
       if (!input.title || typeof input.title !== 'string') {
         throw new Error('Invalid card data: title is required and must be a string');
@@ -58,10 +58,10 @@ export class CardService {
 
       const cardsCollection = this.db.collection('cards');
 
-      // Get template for validation
-      const template = await this.templateService.getFullTemplateById(input.templateId);
-      if (!template) {
-        throw new Error(`Template ${input.templateId} not found`);
+      // Get model for validation
+      const model = await this.modelService.getFullModelById(input.modelId);
+      if (!model) {
+        throw new Error(`Model ${input.modelId} not found`);
       }
 
       // Prepare card data for validation
@@ -73,12 +73,12 @@ export class CardService {
       };
       this.logger.log('Card data prepared for validation:', JSON.stringify(cardData, null, 2));
 
-      // Validate against template
-      await this.templateService.validateCardData(template, cardData);
+      // Validate against model
+      await this.modelService.validateCardData(model, cardData);
 
       const now = new Date().toISOString();
       const cardDoc = {
-        templateId: input.templateId,
+        modelId: input.modelId,
         title: input.title,
         content: input.content || '',
         body: input.body || '',
@@ -116,9 +116,9 @@ export class CardService {
       const query = `
         FOR card IN cards
           FILTER card._key == @cardId
-          LET template = FIRST(
-            FOR t IN templates
-              FILTER t._key == card.templateId
+          LET model = FIRST(
+            FOR t IN models
+              FILTER t._key == card.modelId
               RETURN t
           )
           LET user = FIRST(
@@ -132,7 +132,7 @@ export class CardService {
                 providerId: u.providerId
               }
           )
-          RETURN MERGE(card, { template, createdBy: user })
+          RETURN MERGE(card, { model, createdBy: user })
       `;
       const cursor = await this.db.query(query, { cardId });
       const card = await cursor.next();
@@ -150,9 +150,9 @@ export class CardService {
     try {
       const query = `
         FOR card IN cards
-          LET template = FIRST(
-            FOR t IN templates
-              FILTER t._key == card.templateId
+          LET model = FIRST(
+            FOR t IN models
+              FILTER t._key == card.modelId
               RETURN t
           )
           LET user = FIRST(
@@ -166,7 +166,7 @@ export class CardService {
                 providerId: u.providerId
               }
           )
-          RETURN MERGE(card, { template, createdBy: user })
+          RETURN MERGE(card, { model, createdBy: user })
       `;
       const cursor = await this.db.query(query);
       return cursor.all();
@@ -186,9 +186,9 @@ export class CardService {
       const query = `
         FOR card IN cards
           FILTER card.createdBy == @userId
-          LET template = FIRST(
-            FOR t IN templates
-              FILTER t._key == card.templateId
+          LET model = FIRST(
+            FOR t IN models
+              FILTER t._key == card.modelId
               RETURN t
           )
           LET user = FIRST(
@@ -202,7 +202,7 @@ export class CardService {
                 providerId: u.providerId
               }
           )
-          RETURN MERGE(card, { template, createdBy: user })
+          RETURN MERGE(card, { model, createdBy: user })
       `;
       
       this.logger.log('Running query with params:', { userId });
@@ -226,9 +226,9 @@ export class CardService {
       const query = `
         FOR card IN cards
           FILTER card.createdBy == @userRef
-          LET template = FIRST(
-            FOR t IN templates
-              FILTER t._key == card.templateId
+          LET model = FIRST(
+            FOR t IN models
+              FILTER t._key == card.modelId
               RETURN t
           )
           LET user = FIRST(
@@ -243,7 +243,7 @@ export class CardService {
               }
           )
           SORT card.createdAt DESC
-          RETURN MERGE(card, { template, createdBy: user })
+          RETURN MERGE(card, { model, createdBy: user })
       `;
       
       const bindVars = { userRef };
@@ -276,7 +276,7 @@ export class CardService {
       // 验证更新数据
       if (updates.meta) {
         this.logger.log('Card data before validation:', {
-          templateId: card.template._key,
+          modelId: card.model._key,
           title: card.title,
           content: card.content,
           body: card.body,
@@ -285,11 +285,11 @@ export class CardService {
             ...updates.meta,
           },
         });
-        const template = await this.templateService.getFullTemplateById(card.template._key);
-        if (!template) {
-          throw new Error(`Template ${card.template._key} not found`);
+        const model = await this.modelService.getFullModelById(card.model._key);
+        if (!model) {
+          throw new Error(`Model ${card.model._key} not found`);
         }
-        await this.templateService.validateCardData(template, {
+        await this.modelService.validateCardData(model, {
           ...card,
           meta: {
             ...card.meta,
@@ -333,9 +333,9 @@ export class CardService {
     try {
       const query = `
         FOR card IN cards
-          LET template = FIRST(
-            FOR t IN templates
-              FILTER t._key == card.templateId
+          LET model = FIRST(
+            FOR t IN models
+              FILTER t._key == card.modelId
               RETURN t
           )
           LET creator = FIRST(
@@ -357,7 +357,7 @@ export class CardService {
               UNSET(card, ['createdBy']),
               { 
                 createdBy: creator,
-                template: template
+                model: model
               }
             ),
             children: relations

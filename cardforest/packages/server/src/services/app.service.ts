@@ -11,7 +11,7 @@ export class AppService {
       <h2>Query</h2>
       <p>
         Card: <a href="/card">card</a> | <a href="/card/full">card/full</a><br>
-        Template: <a href="/template">template</a> | <a href="/template/full">template/full</a>
+        Model: <a href="/model">model</a> | <a href="/model/full">model/full</a>
       </p>
       
       <h2>Auth</h2>

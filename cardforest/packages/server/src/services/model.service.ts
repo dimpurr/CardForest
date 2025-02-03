@@ -1,112 +1,112 @@
 import { Injectable } from '@nestjs/common';
 import { ArangoDBService } from './arangodb.service';
 import { Database, aql } from 'arangojs';
-import { Template, FieldDefinition, FieldGroup, FlattenedTemplate } from '../interfaces/template.interface';
+import { Model, FieldDefinition, FieldGroup, FlattenedModel } from '../interfaces/model.interface';
 
 @Injectable()
-export class TemplateService {
+export class ModelService {
   private db: Database;
-  private templateCollection: any;
+  private modelCollection: any;
 
   constructor(private readonly arangoDBService: ArangoDBService) {
     this.db = this.arangoDBService.getDatabase();
-    this.templateCollection = this.db.collection('templates');
+    this.modelCollection = this.db.collection('models');
   }
 
-  async getTemplates(): Promise<FlattenedTemplate[]> {
+  async getModels(): Promise<FlattenedModel[]> {
     try {
-      const templates = await this.getTemplatesWithFields();
-      return templates.map(template => this.flattenTemplate(template));
+      const models = await this.getModelsWithFields();
+      return models.map(model => this.flattenModel(model));
     } catch (error) {
-      console.error('Failed to get templates:', error);
+      console.error('Failed to get models:', error);
       throw error;
     }
   }
 
-  async getTemplatesWithFields(): Promise<Template[]> {
+  async getModelsWithFields(): Promise<Model[]> {
     try {
       const query = aql`
-        FOR template IN templates
-        SORT template.createdAt DESC
-        RETURN template
+        FOR model IN models
+        SORT model.createdAt DESC
+        RETURN model
       `;
       const cursor = await this.db.query(query);
-      const templates = await cursor.all();
-      return templates;
+      const models = await cursor.all();
+      return models;
     } catch (error) {
-      console.error('Failed to get templates with fields:', error);
+      console.error('Failed to get models with fields:', error);
       throw error;
     }
   }
 
-  async getTemplateById(id: string): Promise<FlattenedTemplate> {
+  async getModelById(id: string): Promise<FlattenedModel> {
     try {
-      const template = await this.getTemplateWithInheritance(id);
-      if (!template) {
-        throw new Error('Template not found');
+      const model = await this.getModelWithInheritance(id);
+      if (!model) {
+        throw new Error('Model not found');
       }
-      return this.flattenTemplate(template);
+      return this.flattenModel(model);
     } catch (error) {
-      console.error('Failed to get template by id:', error);
+      console.error('Failed to get model by id:', error);
       throw error;
     }
   }
 
-  async getFullTemplateById(id: string): Promise<Template> {
+  async getFullModelById(id: string): Promise<Model> {
     try {
-      const template = await this.templateCollection.document(id);
-      if (!template) {
-        throw new Error('Template not found');
+      const model = await this.modelCollection.document(id);
+      if (!model) {
+        throw new Error('Model not found');
       }
-      return template;
+      return model;
     } catch (error) {
-      if (error.message === 'Template not found') {
+      if (error.message === 'Model not found') {
         throw error;
       }
-      console.error('Failed to get full template by id:', error);
-      throw new Error('Failed to get template');
+      console.error('Failed to get full model by id:', error);
+      throw new Error('Failed to get model');
     }
   }
 
-  async getTemplateWithInheritance(templateId: string): Promise<Template> {
-    const template = await this.getFullTemplateById(templateId);
-    if (!template) {
-      throw new Error('Template not found');
+  async getModelWithInheritance(modelId: string): Promise<Model> {
+    const model = await this.getFullModelById(modelId);
+    if (!model) {
+      throw new Error('Model not found');
     }
 
-    if (!template.inherits_from || template.inherits_from.length === 0) {
-      return template;
+    if (!model.inherits_from || model.inherits_from.length === 0) {
+      return model;
     }
 
-    const inheritedTemplates = await Promise.all(
-      template.inherits_from.map(parentId => this.getFullTemplateById(parentId))
+    const inheritedModels = await Promise.all(
+      model.inherits_from.map(parentId => this.getFullModelById(parentId))
     );
 
-    // Merge fields from inherited templates
+    // Merge fields from inherited models
     const mergedFields: FieldGroup[] = [];
-    for (const parent of inheritedTemplates) {
+    for (const parent of inheritedModels) {
       if (parent) {
         mergedFields.push(...parent.fields);
       }
     }
-    mergedFields.push(...template.fields);
+    mergedFields.push(...model.fields);
 
     return {
-      ...template,
+      ...model,
       fields: mergedFields,
     };
   }
 
-  flattenTemplate(template: Template): FlattenedTemplate {
+  flattenModel(model: Model): FlattenedModel {
     return {
-      _key: template._key,
-      _id: template._id,
-      name: template.name,
-      fields: template.fields,
-      system: template.system,
-      createdAt: template.createdAt,
-      updatedAt: template.updatedAt,
-      createdBy: template.createdBy,
+      _key: model._key,
+      _id: model._id,
+      name: model.name,
+      fields: model.fields,
+      system: model.system,
+      createdAt: model.createdAt,
+      updatedAt: model.updatedAt,
+      createdBy: model.createdBy,
     };
   }
 
@@ -152,10 +152,10 @@ export class TemplateService {
     });
   }
 
-  validateCardData(template: Template, cardData: any): void {
+  validateCardData(model: Model, cardData: any): void {
     // Get all field groups
-    const basicGroup = template.fields.find(g => g._inherit_from === '_self' || g._inherit_from === 'basic');
-    const metaGroups = template.fields.filter(g => g._inherit_from !== '_self' && g._inherit_from !== 'basic');
+    const basicGroup = model.fields.find(g => g._inherit_from === '_self' || g._inherit_from === 'basic');
+    const metaGroups = model.fields.filter(g => g._inherit_from !== '_self' && g._inherit_from !== 'basic');
 
     // Validate basic fields
     if (basicGroup) {
@@ -245,13 +245,13 @@ export class TemplateService {
     }
   }
 
-  async createTemplate(
+  async createModel(
     input: { name: string; fields: FieldGroup[]; inherits_from?: string[] },
     user: any
-  ): Promise<Template> {
+  ): Promise<Model> {
     this.validateFields(input.fields);
 
-    const template: Template = {
+    const model: Model = {
       name: input.name,
       fields: input.fields,
       inherits_from: input.inherits_from || [],
@@ -261,78 +261,78 @@ export class TemplateService {
     };
 
     try {
-      const result = await this.templateCollection.save(template);
+      const result = await this.modelCollection.save(model);
       return {
-        ...template,
+        ...model,
         _id: result._id,
         _key: result._key,
         _rev: result._rev,
       };
     } catch (error) {
-      console.error('Failed to create template:', error);
+      console.error('Failed to create model:', error);
       throw error;
     }
   }
 
-  async updateTemplate(templateId: string, updates: Partial<Template>): Promise<Template> {
-    const template = await this.getFullTemplateById(templateId);
-    if (!template) {
-      throw new Error('Template not found');
+  async updateModel(modelId: string, updates: Partial<Model>): Promise<Model> {
+    const model = await this.getFullModelById(modelId);
+    if (!model) {
+      throw new Error('Model not found');
     }
 
     if (updates.fields) {
       this.validateFields(updates.fields);
     }
 
-    const updatedTemplate = {
-      ...template,
+    const updatedModel = {
+      ...model,
       ...updates,
       updatedAt: new Date().toISOString(),
     };
 
-    await this.templateCollection.update(templateId, updatedTemplate);
-    return this.getFullTemplateById(templateId);
+    await this.modelCollection.update(modelId, updatedModel);
+    return this.getFullModelById(modelId);
   }
 
-  async deleteTemplate(templateId: string): Promise<boolean> {
+  async deleteModel(modelId: string): Promise<boolean> {
     try {
-      const template = await this.getTemplateById(templateId);
-      if (!template) {
-        throw new Error(`Template ${templateId} not found`);
+      const model = await this.getModelById(modelId);
+      if (!model) {
+        throw new Error(`Model ${modelId} not found`);
       }
 
-      if (template.system) {
-        throw new Error('Cannot delete system template');
+      if (model.system) {
+        throw new Error('Cannot delete system model');
       }
 
       // 检查是否有其他模板继承自此模板
       const query = aql`
-        FOR t IN templates
-        FILTER t.inherits_from == ${templateId}
+        FOR t IN models
+        FILTER t.inherits_from == ${modelId}
         RETURN t
       `;
       const cursor = await this.db.query(query);
       const children = await cursor.all();
       if (children.length > 0) {
-        throw new Error('Cannot delete template with children');
+        throw new Error('Cannot delete model with children');
       }
 
       // 检查是否有卡片使用此模板
       const cardQuery = aql`
         FOR card IN cards
-        FILTER card.template == ${templateId}
+        FILTER card.model == ${modelId}
         RETURN card
       `;
       const cardCursor = await this.db.query(cardQuery);
       const cards = await cardCursor.all();
       if (cards.length > 0) {
-        throw new Error('Cannot delete template in use by cards');
+        throw new Error('Cannot delete model in use by cards');
       }
 
-      await this.templateCollection.remove(templateId);
+      await this.modelCollection.remove(modelId);
       return true;
     } catch (error) {
-      console.error('Failed to delete template:', error);
+      console.error('Failed to delete model:', error);
       throw error;
     }
   }

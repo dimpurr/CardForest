@@ -42,6 +42,14 @@ module.exports = {
         link: '/config/'
       },
       {
+        text: 'GPT',
+        link: '/gpt/'
+      },
+      {
+        text: 'Tech',
+        link: '/tech/'
+      },
+      {
         text: 'VuePress',
         link: 'https://v1.vuepress.vuejs.org'
       }
@@ -55,7 +63,35 @@ module.exports = {
             '',
             'using-vue',
             'server',
-            'log'
+            'log',
+            'database',
+            'card_content_and_relations'
+          ]
+        }
+      ],
+      '/gpt/': [
+        {
+          title: 'GPT',
+          collapsable: false,
+          children: [
+            'debug',
+            'memo',
+            'ongoingtask',
+            'updatedocs',
+          ]
+        }
+      ],
+      '/tech/': [
+        {
+          title: 'Tech',
+          collapsable: false,
+          children: [
+            'architecture',
+            'modules/auth',
+            'modules/card',
+            'modules/model',
+            'modules/ui',
+            'modules/user',
           ]
         }
       ],

@@ -14,9 +14,9 @@
 * 系统实现两套认证流程：后端调试认证使用/user/auth/github路径与/user/auth/auth-callback-backend回调，用于开发调试和后端状态查看；前端应用认证通过前端路由处理OAuth回调供实际用户使用。Auth.js(NextAuth升级版)+Apollo+JWT认证流程中，使用hook管理JWT避免服务端操作cookie。Auth.js配置中jwt回调获取并存储backendJwt，session回调传递给前端，不要在jwt回调中读取cookie；CORS配置必须同时设置credentials:true和exposedHeaders:['Set-Cookie']允许跨域cookie，origin需精确匹配前端域名；Apollo Client需设置credentials:'include'确保发送cookie。Web环境需要CSRF、XSS防护，Desktop环境需要本地权限管理，所有环境都需要加密敏感数据。GraphQL mutation必须在resolver层使用@UseGuards(AuthGuard)保护，前端组件需要useSession和useJWT双重确保，Apollo Client的authLink必须在SSR环境下安全处理window对象。AuthGuard需要同时支持从Authorization header和cookies中获取JWT，确保在不同场景下都能正确验证用户身份。使用Auth.js时避免使用Edge Runtime以防止JWT处理问题，确保在jwt回调中正确处理OAuth provider返回的profile信息。Auth.js集成关键点：1)jwt回调必须在token中存储backendJwt(而非直接返回新对象)；2)session回调必须从token读取并传递backendJwt；3)GitHub OAuth profile可能使用sub或id字段作为用户标识，后端需兼容处理；4)Apollo Client的authLink应异步获取session确保JWT最新；5)useJWT hook应通过useEffect响应session变化；6)调试时需记录完整生命周期日志(OAuth回调、JWT生成、Session传递、GraphQL请求)。
 
 ## 模板与卡片系统
-* 模板字段验证：基础模板必须使用_inherit_from:'_self'，继承模板使用_inherit_from:templateKey。验证时basic/meta字段分开验证，meta字段在cardData.meta下。createUser需分别传入username和password参数而非对象。模板字段验证时需区分基础字段和元字段位置，避免字段定义和数据结构不匹配。
-* 模板字段处理：继承模板的字段分为两类：1)当前模板字段(_inherit_from:templateId)；2)继承字段(_inherit_from:'_self')。处理时需要先将当前模板字段标记为_self，然后添加继承模板的_self字段。不要用继承字段替换当前字段，而是构建包含两者的新字段数组。
-* 模板继承UI规则：继承选择界面中，当前模板自身需要被禁用且永远不选中(disabled+unchecked)，已继承的父模板需要被禁用且永远选中(disabled+checked)，只有其他独立模板可以被自由选择。这确保了继承关系的单向性和一致性，避免循环继承。父模板状态初始化必须从template.fields中的_inherit_from提取(排除'_self')，而非使用template.inherits_from。模板ID需要加'templates/'前缀。
+* 模板字段验证：基础模板必须使用_inherit_from:'_self'，继承模板使用_inherit_from:modelKey。验证时basic/meta字段分开验证，meta字段在cardData.meta下。createUser需分别传入username和password参数而非对象。模板字段验证时需区分基础字段和元字段位置，避免字段定义和数据结构不匹配。
+* 模板字段处理：继承模板的字段分为两类：1)当前模板字段(_inherit_from:modelId)；2)继承字段(_inherit_from:'_self')。处理时需要先将当前模板字段标记为_self，然后添加继承模板的_self字段。不要用继承字段替换当前字段，而是构建包含两者的新字段数组。
+* 模板继承UI规则：继承选择界面中，当前模板自身需要被禁用且永远不选中(disabled+unchecked)，已继承的父模板需要被禁用且永远选中(disabled+checked)，只有其他独立模板可以被自由选择。这确保了继承关系的单向性和一致性，避免循环继承。父模板状态初始化必须从model.fields中的_inherit_from提取(排除'_self')，而非使用model.inherits_from。模板ID需要加'models/'前缀。
 * 卡片创建格式：CreateCardInput必须分开处理基础字段(title/content/body)和meta字段。基础字段直接放在input对象中，其他字段放在meta对象中。不要使用fields数组格式，这是旧版本的格式已废弃。
 * API命名规范：使用my前缀表示当前用户相关查询如myCards而非userCards，使用full后缀表示包含完整关联数据的查询如card/full，需保持命名一致性避免同一概念使用不同名称。模板系统支持从基础模板到特化模板的继承关系，字段定义包含验证规则和UI展示信息，自动处理系统字段。卡片系统包含title/content/body基础字段，使用meta字段存储模板特定数据，通过relations集合管理父子关系。数据关联使用_key而非完整_id路径，GraphQL查询需要通过AQL JOIN获取完整关联对象。
 
@@ -31,12 +31,12 @@
 
 ## 模板系统
 
-* 模板字段使用FieldGroup分组，支持继承链，使用inherits_from数组存储父模板ID。字段验证在TemplateService.validateFields中处理，使用isValidFieldType检查类型。模板编辑器需要同时支持字段编辑和继承管理，使用Jotai atom管理模板状态避免prop drilling。模板列表需要展示继承关系，可以用树形结构或者标签形式。字段覆盖时需要保留原字段信息便于还原。前端使用GraphQL fragments优化模板查询，使用useTemplate hook封装模板操作逻辑。模板预览需要考虑继承字段的显示方式，可以用不同颜色或图标区分来源。
+* 模板字段使用FieldGroup分组，支持继承链，使用inherits_from数组存储父模板ID。字段验证在ModelService.validateFields中处理，使用isValidFieldType检查类型。模板编辑器需要同时支持字段编辑和继承管理，使用Jotai atom管理模板状态避免prop drilling。模板列表需要展示继承关系，可以用树形结构或者标签形式。字段覆盖时需要保留原字段信息便于还原。前端使用GraphQL fragments优化模板查询，使用useModel hook封装模板操作逻辑。模板预览需要考虑继承字段的显示方式，可以用不同颜色或图标区分来源。
 
 * 模板继承采用原型链机制：festival_date_card -> datecard -> basic_card，字段按来源分组存储，每组用_inherit_from标记来源模板。编辑器中title/body/content在顶部，meta区域按模板来源分组显示。字段存储格式：{name:"festival_date_card", inherits_from:["datecard"], fields:[{_inherit_from:"basic_card",fields:[{name:"title",type:"text"}]},{_inherit_from:"datecard",fields:[{name:"start_date",type:"date"}]},{_inherit_from:"_self",fields:[{name:"origin",type:"text"}]}]}。GraphQL返回扁平化字段用flattenedFields保持兼容。
-* 模板字段设计关键点：(1)Template和FlattenedTemplate的fields类型必须保持一致，统一用FieldGroup[]数组结构，避免使用Record<string,FieldDefinition>以防前后端不一致；(2)字段分组用_inherit_from区分基础字段(basic/_self)和meta字段；(3)GraphQL schema中不要用JSON类型表示复杂结构，应该完整定义字段类型以获得类型检查；(4)前端根据_inherit_from渲染不同区域，basic字段和meta字段分开展示。
-* 模板继承实现注意点：(1)所有获取模板的接口都要处理继承关系，包括getTemplateById；(2)继承处理通过getTemplateWithInheritance方法合并所有父模板的字段；(3)字段合并时保持_inherit_from标记以便前端区分字段来源；(4)GraphQL查询需要包含完整的字段结构。/ GraphQL 查询 - `GET_TEMPLATE_WITH_INHERITANCE`: 获取模板及其继承关系 - `CREATE_TEMPLATE`, `UPDATE_TEMPLATE`: 分别用于创建和更新模板   - 查询和变更分别放在 queries/ 和 mutations/ 目录下
-* 在设计 GraphQL Schema 时，需要注意以下几点： **类型统一性**：如果两个类型有相同的字段结构，应该尽量合并成一个类型，而不是创建多个相似的类型。这样可以： - 允许 Fragment 在不同查询间复用 - 减少类型定义的重复 - 简化客户端的类型处理  **类型扩展方式**： - 使用字段标记而不是新类型来区分变体 - 必要时使用 interface 来共享字段 - 考虑使用 union type 来处理多态性  **实际案例**： - 原本将 `Template` 和 `FlattenedTemplate` 分开定义，导致 Fragment 无法复用 - 解决方案是合并为单一的 `Template` 类型，通过查询方法的不同来返回不同的数据结构 - 保持了类型系统的简洁性，同时提高了代码的可维护性 
+* 模板字段设计关键点：(1)Model和FlattenedModel的fields类型必须保持一致，统一用FieldGroup[]数组结构，避免使用Record<string,FieldDefinition>以防前后端不一致；(2)字段分组用_inherit_from区分基础字段(basic/_self)和meta字段；(3)GraphQL schema中不要用JSON类型表示复杂结构，应该完整定义字段类型以获得类型检查；(4)前端根据_inherit_from渲染不同区域，basic字段和meta字段分开展示。
+* 模板继承实现注意点：(1)所有获取模板的接口都要处理继承关系，包括getModelById；(2)继承处理通过getModelWithInheritance方法合并所有父模板的字段；(3)字段合并时保持_inherit_from标记以便前端区分字段来源；(4)GraphQL查询需要包含完整的字段结构。/ GraphQL 查询 - `GET_MODEL_WITH_INHERITANCE`: 获取模板及其继承关系 - `CREATE_MODEL`, `UPDATE_MODEL`: 分别用于创建和更新模板   - 查询和变更分别放在 queries/ 和 mutations/ 目录下
+* 在设计 GraphQL Schema 时，需要注意以下几点： **类型统一性**：如果两个类型有相同的字段结构，应该尽量合并成一个类型，而不是创建多个相似的类型。这样可以： - 允许 Fragment 在不同查询间复用 - 减少类型定义的重复 - 简化客户端的类型处理  **类型扩展方式**： - 使用字段标记而不是新类型来区分变体 - 必要时使用 interface 来共享字段 - 考虑使用 union type 来处理多态性  **实际案例**： - 原本将 `Model` 和 `FlattenedModel` 分开定义，导致 Fragment 无法复用 - 解决方案是合并为单一的 `Model` 类型，通过查询方法的不同来返回不同的数据结构 - 保持了类型系统的简洁性，同时提高了代码的可维护性 
 
 ## GraphQL 字段处理
 

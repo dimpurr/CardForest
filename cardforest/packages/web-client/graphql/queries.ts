@@ -14,9 +14,9 @@ export const GET_MY_CARDS = gql`
   }
 `;
 
-export const GET_TEMPLATES = gql`
-  query GetTemplates {
-    templates {
+export const GET_MODELS = gql`
+  query GetModels {
+    models {
       _id
       _key
       name
@@ -24,9 +24,9 @@ export const GET_TEMPLATES = gql`
   }
 `;
 
-export const GET_TEMPLATE_BY_ID = gql`
-  query GetTemplateById($id: ID!) {
-    template(id: $id) {
+export const GET_MODEL_BY_ID = gql`
+  query GetModelById($id: ID!) {
+    model(id: $id) {
       _id
       _key
       name

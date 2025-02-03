@@ -13,7 +13,7 @@ export class InstallController {
       await this.installService.install();
       res.send(`
         <h3>Installation complete</h3>
-        <p>✅ Created basic template and date template</p>
+        <p>✅ Created basic model and date model</p>
         <p>✅ Created test user and admin user</p>
         <p>✅ Created sample cards</p>
       `);

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FieldDefinition } from '@/types/template';
+import { FieldDefinition } from '@/types/model';
 
 interface FieldEditorProps {
   fields: FieldDefinition[];

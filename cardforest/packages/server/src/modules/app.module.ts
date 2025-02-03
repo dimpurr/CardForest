@@ -10,10 +10,10 @@ import { InstallService } from '../services/install.service';
 import { CardService } from '../services/card.service';
 import { UserService } from '../services/user.service';
 import { AuthService } from '../services/auth.service';
-import { TemplateService } from '../services/template.service';
+import { ModelService } from '../services/model.service';
 import { CardResolver } from '../graphql/card.resolver';
 import { UserResolver } from '../graphql/user.resolver';
-import { TemplateResolver } from '../graphql/template.resolver';
+import { ModelResolver } from '../graphql/model.resolver';
 import { AuthResolver } from '../graphql/auth.resolver';
 import { DatabaseModule } from './database.module';
 import { UserModule } from './user.module';
@@ -21,7 +21,7 @@ import { AuthModule } from './auth.module';
 import { CardController } from 'src/controllers/card.controller';
 import { AuthController } from '../controllers/auth.controller';
 import { InstallController } from '../controllers/install.controller';
-import { TemplateController } from '../controllers/template.controller';
+import { ModelController } from '../controllers/model.controller';
 
 @Module({
   imports: [
@@ -83,7 +83,7 @@ import { TemplateController } from '../controllers/template.controller';
     DatabaseModule,
     AuthModule,
   ],
-  controllers: [AppController, CardController, AuthController, InstallController, TemplateController],
+  controllers: [AppController, CardController, AuthController, InstallController, ModelController],
   providers: [
     AppService,
     ArangoDBService,
@@ -91,10 +91,10 @@ import { TemplateController } from '../controllers/template.controller';
     CardService,
     UserService,
     AuthService,
-    TemplateService,
+    ModelService,
     CardResolver,
     UserResolver,
-    TemplateResolver,
+    ModelResolver,
     AuthResolver,
   ],
 })

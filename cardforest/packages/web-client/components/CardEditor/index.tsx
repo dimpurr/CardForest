@@ -1,23 +1,23 @@
 import { useEffect } from 'react';
 import { useQuery } from '@apollo/client';
 import { useAtom } from 'jotai';
-import { GET_TEMPLATE_BY_ID } from '../../graphql/queries';
+import { GET_MODEL_BY_ID } from '../../graphql/queries';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
 import { Alert } from '../ui/Alert';
 import { DatePicker } from '../ui/DatePicker';
 import { MetaField } from './MetaField';
-import { cardEditorAtom, cardTemplateAtom, type CardEditorData } from '../../stores/cardEditor';
+import { cardEditorAtom, cardModelAtom, type CardEditorData } from '../../stores/cardEditor';
 
 interface CardEditorProps {
-  templateId: string;
+  modelId: string;
   initialData?: CardEditorData;
   onChange?: (data: CardEditorData) => void;
 }
 
-export function CardEditor({ templateId, initialData, onChange }: CardEditorProps) {
+export function CardEditor({ modelId, initialData, onChange }: CardEditorProps) {
   const [formData, setFormData] = useAtom(cardEditorAtom);
-  const [template, setTemplate] = useAtom(cardTemplateAtom);
+  const [model, setModel] = useAtom(cardModelAtom);
 
   useEffect(() => {
     if (initialData) {
@@ -25,13 +25,13 @@ export function CardEditor({ templateId, initialData, onChange }: CardEditorProp
     }
   }, [initialData, setFormData]);
 
-  const { loading: templateLoading, error: templateError } = useQuery(
-    GET_TEMPLATE_BY_ID,
+  const { loading: modelLoading, error: modelError } = useQuery(
+    GET_MODEL_BY_ID,
     {
-      variables: { id: templateId },
-      skip: !templateId,
+      variables: { id: modelId },
+      skip: !modelId,
       onCompleted: (data) => {
-        setTemplate(data.template);
+        setModel(data.model);
       },
     }
   );
@@ -42,16 +42,16 @@ export function CardEditor({ templateId, initialData, onChange }: CardEditorProp
     }
   }, [formData, onChange]);
 
-  if (templateLoading) {
-    return <div>Loading template...</div>;
+  if (modelLoading) {
+    return <div>Loading model...</div>;
   }
 
-  if (templateError) {
-    return <Alert variant="destructive">{templateError.message}</Alert>;
+  if (modelError) {
+    return <Alert variant="destructive">{modelError.message}</Alert>;
   }
 
-  if (!template) {
-    return <Alert variant="destructive">Template not found</Alert>;
+  if (!model) {
+    return <Alert variant="destructive">Model not found</Alert>;
   }
 
   const handleChange = (field: keyof CardEditorData, value: any) => {
@@ -72,12 +72,12 @@ export function CardEditor({ templateId, initialData, onChange }: CardEditorProp
   };
 
   // Find basic fields group
-  const basicFields = template.fields.find(group => 
+  const basicFields = model.fields.find(group => 
     group._inherit_from === 'basic' || group._inherit_from === '_self'
   )?.fields || [];
 
   // Find meta fields groups (all except basic)
-  const metaGroups = template.fields.filter(group => 
+  const metaGroups = model.fields.filter(group => 
     group._inherit_from !== 'basic' && group._inherit_from !== '_self'
   );
 

@@ -32,11 +32,11 @@ export default function Home() {
                     </p>
                   </div>
                 </Link>
-                <Link href="/templates" className="block">
+                <Link href="/models" className="block">
                   <div className="card p-4 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
-                    <h3 className="font-semibold mb-2">Templates</h3>
+                    <h3 className="font-semibold mb-2">Models</h3>
                     <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                      Create and manage card templates
+                      Create and manage card models
                     </p>
                   </div>
                 </Link>

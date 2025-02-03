@@ -1,11 +1,11 @@
 import { useRouter } from 'next/router';
 import { useMutation, useQuery } from '@apollo/client';
 import { CREATE_CARD, UPDATE_CARD } from '@/graphql/mutations/cardMutations';
-import { GET_TEMPLATE_WITH_INHERITANCE } from '@/graphql/queries/templateQueries';
+import { GET_MODEL_WITH_INHERITANCE } from '@/graphql/queries/modelQueries';
 import { GET_MY_CARDS } from '@/graphql/queries/cardQueries';
 import { CardForm } from './CardForm';
 import { Button } from '@/components/ui/Button';
-import { Template } from '@/types/template';
+import { Model } from '@/types/model';
 import { DebugPanel } from '@/components/debug/DebugPanel';
 import { useState } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -13,14 +13,14 @@ import toast from 'react-hot-toast';
 
 interface CardEditorProps {
   mode?: 'create' | 'edit';
-  template: Template;
+  model: Model;
   card?: any;
   onSuccess?: () => void;
 }
 
 export function CardEditor({
   mode = 'create',
-  template,
+  model,
   card,
   onSuccess,
 }: CardEditorProps) {
@@ -62,9 +62,9 @@ export function CardEditor({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 如果是编辑模式，获取模板数据
-  const { data: templateData } = useQuery(GET_TEMPLATE_WITH_INHERITANCE, {
-    variables: { id: card?.templateId },
-    skip: mode === 'create' || !card?.templateId,
+  const { data: modelData } = useQuery(GET_MODEL_WITH_INHERITANCE, {
+    variables: { id: card?.modelId },
+    skip: mode === 'create' || !card?.modelId,
   });
 
   const handleSubmit = async (data: any) => {
@@ -72,7 +72,7 @@ export function CardEditor({
       setError(null);
       setIsSubmitting(true);
       const input = {
-        templateId: template._id.split('/').pop() || '',
+        modelId: model._id.split('/').pop() || '',
         title: data.title || '',
         content: data.content || '',
         body: data.body || '',
@@ -120,12 +120,12 @@ export function CardEditor({
   };
 
   // 如果是编辑模式且需要模板数据，等待加载完成
-  if (mode === 'edit' && !templateData?.template) {
-    return <div>Loading template...</div>;
+  if (mode === 'edit' && !modelData?.model) {
+    return <div>Loading model...</div>;
   }
 
   // 使用编辑模式下的模板数据或创建模式下传入的模板
-  const activeTemplate = mode === 'edit' ? templateData?.template : template;
+  const activeModel = mode === 'edit' ? modelData?.model : model;
 
   return (
     <div className="space-y-6">
@@ -134,7 +134,7 @@ export function CardEditor({
           {mode === 'create' ? 'Create New Card' : 'Edit Card'}
         </h1>
         <div className="text-sm text-gray-500">
-          using template: {activeTemplate.name}
+          using model: {activeModel.name}
         </div>
       </div>
 
@@ -145,7 +145,7 @@ export function CardEditor({
       )}
 
       <CardForm
-        template={activeTemplate}
+        model={activeModel}
         onSubmit={handleSubmit}
         defaultValues={card?.fields?.reduce((acc: any, field: any) => {
           acc[field.name] = field.value;
@@ -159,8 +159,8 @@ export function CardEditor({
       />
 
       <DebugPanel
-        title="Template Data"
-        data={activeTemplate}
+        title="Model Data"
+        data={activeModel}
       />
 
       <div className="flex justify-end gap-4">

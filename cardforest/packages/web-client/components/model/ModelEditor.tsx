@@ -1,41 +1,41 @@
 import { useMutation, useQuery } from '@apollo/client';
 import { useRouter } from 'next/router';
 import { useState } from 'react';
-import { CREATE_TEMPLATE, UPDATE_TEMPLATE } from '@/graphql/mutations/templateMutations';
-import { GET_TEMPLATES } from '@/graphql/queries/templateQueries';
+import { CREATE_MODEL, UPDATE_MODEL } from '@/graphql/mutations/modelMutations';
+import { GET_MODELS } from '@/graphql/queries/modelQueries';
 import { FieldEditor } from './FieldEditor';
-import { TemplateInheritanceSelector } from './TemplateInheritanceSelector';
-import { Template, FieldGroup, FieldDefinition } from '@/types/template';
+import { ModelInheritanceSelector } from './ModelInheritanceSelector';
+import { Model, FieldGroup, FieldDefinition } from '@/types/model';
 
-interface TemplateEditorProps {
+interface ModelEditorProps {
   mode: 'create' | 'edit';
-  template?: Template;
+  model?: Model;
 }
 
-export function TemplateEditor({ mode, template }: TemplateEditorProps) {
+export function ModelEditor({ mode, model }: ModelEditorProps) {
   const router = useRouter();
-  const [name, setName] = useState(template?.name || '');
+  const [name, setName] = useState(model?.name || '');
   const [inheritsFrom, setInheritsFrom] = useState<string[]>(() => {
-    // Initialize with parent templates and ensure they can't be removed
-    const parentTemplates = template?.fields
+    // Initialize with parent models and ensure they can't be removed
+    const parentModels = model?.fields
       ?.filter(group => group._inherit_from !== '_self')
-      .map(group => `templates/${group._inherit_from}`) || [];
-    return parentTemplates;
+      .map(group => `models/${group._inherit_from}`) || [];
+    return parentModels;
   });
   const [fields, setFields] = useState<FieldGroup[]>(
-    template?.fields || [{ _inherit_from: '_self', fields: [] }]
+    model?.fields || [{ _inherit_from: '_self', fields: [] }]
   );
 
-  const { data: templatesData } = useQuery(GET_TEMPLATES);
-  const availableTemplates = templatesData?.templates || [];
+  const { data: modelsData } = useQuery(GET_MODELS);
+  const availableModels = modelsData?.models || [];
 
   // 获取继承的模板
-  const inheritedTemplate = templatesData?.templates?.find(
-    (t: any) => t._id === `templates/${fields[0]?._inherit_from}`
+  const inheritedModel = modelsData?.models?.find(
+    (t: any) => t._id === `models/${fields[0]?._inherit_from}`
   );
 
   // 获取继承的字段
-  const inheritedFields = inheritedTemplate?.fields?.filter(
+  const inheritedFields = inheritedModel?.fields?.filter(
     (group: FieldGroup) => group._inherit_from === '_self'
   ) || [];
 
@@ -52,12 +52,12 @@ export function TemplateEditor({ mode, template }: TemplateEditorProps) {
     ]);
   };
 
-  const [createTemplate] = useMutation(CREATE_TEMPLATE, {
-    refetchQueries: [{ query: GET_TEMPLATES }],
+  const [createModel] = useMutation(CREATE_MODEL, {
+    refetchQueries: [{ query: GET_MODELS }],
   });
 
-  const [updateTemplate] = useMutation(UPDATE_TEMPLATE, {
-    refetchQueries: [{ query: GET_TEMPLATES }],
+  const [updateModel] = useMutation(UPDATE_MODEL, {
+    refetchQueries: [{ query: GET_MODELS }],
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -81,19 +81,19 @@ export function TemplateEditor({ mode, template }: TemplateEditorProps) {
       };
 
       if (mode === 'create') {
-        await createTemplate({ variables: { input } });
-      } else if (template?._id) {
-        await updateTemplate({
+        await createModel({ variables: { input } });
+      } else if (model?._id) {
+        await updateModel({
           variables: {
-            id: template._id,
+            id: model._id,
             input,
           },
         });
       }
 
-      router.push('/templates');
+      router.push('/models');
     } catch (error) {
-      console.error('Failed to save template:', error);
+      console.error('Failed to save model:', error);
     }
   };
 
@@ -101,7 +101,7 @@ export function TemplateEditor({ mode, template }: TemplateEditorProps) {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
         <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Template Name
+          Model Name
         </label>
         <input
           type="text"
@@ -115,10 +115,10 @@ export function TemplateEditor({ mode, template }: TemplateEditorProps) {
 
       <div>
         <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Inheritance</h3>
-        <TemplateInheritanceSelector
-          availableTemplates={availableTemplates}
-          selectedTemplates={inheritsFrom}
-          currentTemplateId={template?._id || ''}
+        <ModelInheritanceSelector
+          availableModels={availableModels}
+          selectedModels={inheritsFrom}
+          currentModelId={model?._id || ''}
           onChange={setInheritsFrom}
         />
       </div>
@@ -162,7 +162,7 @@ export function TemplateEditor({ mode, template }: TemplateEditorProps) {
           type="submit"
           className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
-          {mode === 'create' ? 'Create Template' : 'Update Template'}
+          {mode === 'create' ? 'Create Model' : 'Update Model'}
         </button>
       </div>
     </form>

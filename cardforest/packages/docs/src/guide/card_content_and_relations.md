@@ -6,9 +6,9 @@ CardForest 的核心是一个面向对象的卡片系统。每张卡片都是一
 
 ### 模板继承体系
 
-在 CardForest 中，所有卡片都继承自基础模板（Basic Template）。模板系统采用原型链式的继承机制，允许多层次的模板继承和字段扩展。
+在 CardForest 中，所有卡片都继承自基础模板（Basic Model）。模板系统采用原型链式的继承机制，允许多层次的模板继承和字段扩展。
 
-#### 基础模板（Basic Template）
+#### 基础模板（Basic Model）
 
 基础模板定义了卡片的核心结构：
 
@@ -33,7 +33,7 @@ CardForest 的核心是一个面向对象的卡片系统。每张卡片都是一
 
 2. **字段继承和扩展**
    ```typescript
-   interface Template {
+   interface Model {
      name: string;
      inherits_from: string[];  // 继承自哪些模板
      fields: {
@@ -98,11 +98,11 @@ CardForest 的核心是一个面向对象的卡片系统。每张卡片都是一
      Content: Detailed Content
 
      Meta Fields:
-     ## From DateCard Template:
+     ## From DateCard Model:
      - Start Date: 2025-01-01
      - End Date: 2025-01-02
 
-     ## From FestivalCard Template:
+     ## From FestivalCard Model:
      - Origin Country: Japan
      - Celebration Type: Religious
      ```
@@ -155,7 +155,7 @@ CardForest 的链接系统支持多种引用方式，所有引用都会在 Arang
 ## 实现路线图
 
 1. **基础模板系统**（第一阶段）
-   - 实现基础模板（Basic Template）
+   - 实现基础模板（Basic Model）
    - 建立模板继承机制
    - 完成核心字段的处理
 

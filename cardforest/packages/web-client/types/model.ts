@@ -11,10 +11,10 @@ export interface FieldGroup {
 }
 
 export interface FlattenedField extends FieldDefinition {
-  sourceTemplate: string;
+  sourceModel: string;
 }
 
-export interface Template {
+export interface Model {
   _id: string;
   name: string;
   inherits_from: string[];

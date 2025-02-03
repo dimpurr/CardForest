@@ -12,7 +12,7 @@ export interface FieldGroup {
   fields: FieldDefinition[];
 }
 
-export interface Template {
+export interface Model {
   _key: string;
   name: string;
   inherits_from: string[];
@@ -35,4 +35,4 @@ export const cardEditorAtom = atom<CardEditorData>({
   meta: {},
 });
 
-export const cardTemplateAtom = atom<Template | null>(null);
+export const cardModelAtom = atom<Model | null>(null);

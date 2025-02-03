@@ -4,7 +4,7 @@ export const CREATE_CARD = gql`
   mutation CreateCard($input: CreateCardInput!) {
     createCard(input: $input) {
       _id
-      templateId
+      modelId
       title
       content
       body
@@ -22,7 +22,7 @@ export const UPDATE_CARD = gql`
   mutation UpdateCard($id: ID!, $input: UpdateCardInput!) {
     updateCard(id: $id, input: $input) {
       _id
-      templateId
+      modelId
       title
       content
       body

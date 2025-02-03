@@ -1,23 +1,23 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { useQuery } from '@apollo/client';
-import { GET_TEMPLATES } from '@/graphql/queries/templateQueries';
-import { TemplateCard } from '@/components/template/TemplateCard';
+import { GET_MODELS } from '@/graphql/queries/modelQueries';
+import { ModelCard } from '@/components/model/ModelCard';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/alert';
-import { getTemplateId } from '@/utils/templateUtils';
+import { getModelId } from '@/utils/modelUtils';
 
 export function CreateCard({ onCardCreated }: { onCardCreated?: () => void }) {
   const router = useRouter();
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
 
-  const { data, loading, error } = useQuery(GET_TEMPLATES);
+  const { data, loading, error } = useQuery(GET_MODELS);
 
   if (loading) {
     return (
       <div className="p-6">
         <Alert>
-          <Alert.Description>Loading templates...</Alert.Description>
+          <Alert.Description>Loading models...</Alert.Description>
         </Alert>
       </div>
     );
@@ -35,10 +35,10 @@ export function CreateCard({ onCardCreated }: { onCardCreated?: () => void }) {
   }
 
   const handleContinue = () => {
-    if (selectedTemplateId) {
-      const templateId = getTemplateId(selectedTemplateId);
-      if (templateId) {
-        router.push(`/cards/new?templateId=${templateId}`);
+    if (selectedModelId) {
+      const modelId = getModelId(selectedModelId);
+      if (modelId) {
+        router.push(`/cards/new?modelId=${modelId}`);
         onCardCreated?.();
       }
     }
@@ -47,13 +47,13 @@ export function CreateCard({ onCardCreated }: { onCardCreated?: () => void }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {data?.templates?.map((template: any) => (
-          <TemplateCard
-            key={template._id}
-            template={template}
-            templates={data.templates}
-            isSelected={selectedTemplateId === template._id}
-            onClick={() => setSelectedTemplateId(template._id)}
+        {data?.models?.map((model: any) => (
+          <ModelCard
+            key={model._id}
+            model={model}
+            models={data.models}
+            isSelected={selectedModelId === model._id}
+            onClick={() => setSelectedModelId(model._id)}
           />
         ))}
       </div>
@@ -61,7 +61,7 @@ export function CreateCard({ onCardCreated }: { onCardCreated?: () => void }) {
       <div className="flex justify-end">
         <Button
           onClick={handleContinue}
-          disabled={!selectedTemplateId}
+          disabled={!selectedModelId}
         >
           Continue
         </Button>

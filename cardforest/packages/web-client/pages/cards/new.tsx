@@ -1,28 +1,28 @@
 import { useRouter } from 'next/router';
 import { useQuery } from '@apollo/client';
-import { GET_TEMPLATE_WITH_INHERITANCE } from '@/graphql/queries/templateQueries';
+import { GET_MODEL_WITH_INHERITANCE } from '@/graphql/queries/modelQueries';
 import { CardEditor } from '@/components/card/CardEditor';
 import { Alert } from '@/components/ui/alert';
-import { getTemplateFullId } from '@/utils/templateUtils';
+import { getModelFullId } from '@/utils/modelUtils';
 import { Layout } from '@/components/Layout';
 import { DebugPanel } from '@/components/debug/DebugPanel';
 
 export default function NewCardPage() {
   const router = useRouter();
-  const { templateId } = router.query;
+  const { modelId } = router.query;
 
-  const { data, loading, error } = useQuery(GET_TEMPLATE_WITH_INHERITANCE, {
-    variables: { id: getTemplateFullId(templateId as string) },
-    skip: !templateId,
+  const { data, loading, error } = useQuery(GET_MODEL_WITH_INHERITANCE, {
+    variables: { id: getModelFullId(modelId as string) },
+    skip: !modelId,
   });
 
-  if (!templateId) {
+  if (!modelId) {
     return (
       <Layout>
         <div className="p-6">
           <Alert variant="error">
             <Alert.Title>Error</Alert.Title>
-            <Alert.Description>No template selected. Please select a template first.</Alert.Description>
+            <Alert.Description>No model selected. Please select a model first.</Alert.Description>
           </Alert>
         </div>
       </Layout>
@@ -34,21 +34,21 @@ export default function NewCardPage() {
       <Layout>
         <div className="p-6">
           <Alert>
-            <Alert.Description>Loading template...</Alert.Description>
+            <Alert.Description>Loading model...</Alert.Description>
           </Alert>
         </div>
       </Layout>
     );
   }
 
-  if (error || !data?.template) {
+  if (error || !data?.model) {
     return (
       <Layout>
         <div className="p-6">
           <Alert variant="error">
             <Alert.Title>Error</Alert.Title>
             <Alert.Description>
-              {error ? error.message : 'Failed to load template'}
+              {error ? error.message : 'Failed to load model'}
             </Alert.Description>
           </Alert>
         </div>
@@ -56,28 +56,28 @@ export default function NewCardPage() {
     );
   }
 
-  const { template, inheritedTemplates } = data;
+  const { model, inheritedModels } = data;
 
   // 处理模板继承
-  const processedTemplate = {
-    ...template,
+  const processedModel = {
+    ...model,
     fields: [
       // 首先添加当前模板的字段
-      ...template.fields.map(group => ({
+      ...model.fields.map(group => ({
         ...group,
         _inherit_from: '_self'  // 将当前模板的字段标记为 _self
       })),
       // 然后添加继承的字段
-      ...template.fields
+      ...model.fields
         .filter(group => group._inherit_from !== '_self')
         .map(group => {
-          const inheritedTemplate = inheritedTemplates.find(
-            t => t._id === `templates/${group._inherit_from}`
+          const inheritedModel = inheritedModels.find(
+            t => t._id === `models/${group._inherit_from}`
           );
-          if (inheritedTemplate) {
+          if (inheritedModel) {
             return {
               ...group,
-              fields: inheritedTemplate.fields
+              fields: inheritedModel.fields
                 .filter(g => g._inherit_from === '_self')
                 .flatMap(g => g.fields || []),
               _inherit_from: group._inherit_from  // 保持原有的 _inherit_from
@@ -88,30 +88,30 @@ export default function NewCardPage() {
     ]
   };
 
-  console.log('Final template:', JSON.stringify(processedTemplate, null, 2));
+  console.log('Final model:', JSON.stringify(processedModel, null, 2));
 
   return (
     <Layout>
       <div className="p-6">
         <DebugPanel
-          title="Template Data"
+          title="Model Data"
           data={{
             original: {
-              template: {
-                _id: template._id,
-                fields: template.fields,
+              model: {
+                _id: model._id,
+                fields: model.fields,
               },
-              inheritedTemplates: inheritedTemplates.map((t: any) => ({
+              inheritedModels: inheritedModels.map((t: any) => ({
                 _id: t._id,
                 fields: t.fields,
               })),
             },
             processed: {
-              fields: processedTemplate.fields,
+              fields: processedModel.fields,
             },
           }}
         />
-        <CardEditor template={processedTemplate} mode="create" />
+        <CardEditor model={processedModel} mode="create" />
       </div>
     </Layout>
   );

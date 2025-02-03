@@ -2,14 +2,14 @@ import { useRouter } from 'next/router';
 import { useQuery } from '@apollo/client';
 import { Layout } from '@/components/Layout';
 import { Alert } from '@/components/ui/Alert';
-import { GET_TEMPLATE_WITH_INHERITANCE } from '@/graphql/queries/templateQueries';
-import { TemplateEditor } from '@/components/template/TemplateEditor';
+import { GET_MODEL_WITH_INHERITANCE } from '@/graphql/queries/modelQueries';
+import { ModelEditor } from '@/components/model/ModelEditor';
 
-export default function EditTemplatePage() {
+export default function EditModelPage() {
   const router = useRouter();
   const { id } = router.query;
 
-  const { data, loading, error } = useQuery(GET_TEMPLATE_WITH_INHERITANCE, {
+  const { data, loading, error } = useQuery(GET_MODEL_WITH_INHERITANCE, {
     variables: { id },
     skip: !id,
   });
@@ -19,7 +19,7 @@ export default function EditTemplatePage() {
       <Layout>
         <div className="p-6">
           <Alert>
-            <Alert.Description>Loading template...</Alert.Description>
+            <Alert.Description>Loading model...</Alert.Description>
           </Alert>
         </div>
       </Layout>
@@ -39,14 +39,14 @@ export default function EditTemplatePage() {
     );
   }
 
-  if (!data?.template) {
+  if (!data?.model) {
     return (
       <Layout>
         <div className="p-6">
           <Alert variant="error">
-            <Alert.Title>Template Not Found</Alert.Title>
+            <Alert.Title>Model Not Found</Alert.Title>
             <Alert.Description>
-              The template you are looking for does not exist.
+              The model you are looking for does not exist.
             </Alert.Description>
           </Alert>
         </div>
@@ -58,12 +58,12 @@ export default function EditTemplatePage() {
     <Layout>
       <div className="p-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold">Edit Template</h1>
+          <h1 className="text-2xl font-bold">Edit Model</h1>
           <p className="text-neutral-600 dark:text-neutral-400">
-            Edit template details and fields
+            Edit model details and fields
           </p>
         </div>
-        <TemplateEditor template={data.template} mode="edit" />
+        <ModelEditor model={data.model} mode="edit" />
       </div>
     </Layout>
   );

@@ -7,7 +7,7 @@
 ### 设计文档
 - 卡片内容与关系设计: `/packages/docs/src/guide/card_content_and_relations.md`
 - 技术架构概览: `/packages/docs/src/tech/architecture.md`
-- 模板系统技术文档: `/packages/docs/src/tech/modules/template.md`
+- 模板系统技术文档: `/packages/docs/src/tech/modules/model.md`
 - 卡片系统技术文档: `/packages/docs/src/tech/modules/card.md`
 - 用户系统技术文档: `/packages/docs/src/tech/modules/user.md`
 - 认证系统技术文档: `/packages/docs/src/tech/modules/auth.md`
@@ -15,13 +15,13 @@
 ## 已完成任务
 
 ### 1. 后端：基础设施
-- [x] 创建基本数据集合（users, templates, cards, relations）
-- [x] 实现基础服务（UserService, TemplateService, CardService）
+- [x] 创建基本数据集合（users, models, cards, relations）
+- [x] 实现基础服务（UserService, ModelService, CardService）
 - [x] 设置认证系统（GitHub OAuth）
 - [x] 配置 GraphQL（类型定义、解析器）
 
 ### 2. 后端：模板系统
-- [x] 实现 TemplateService
+- [x] 实现 ModelService
   - [x] 基础 CRUD 操作
   - [x] 模板继承处理
   - [x] 字段验证逻辑
@@ -126,7 +126,7 @@
 
 3. 组件开发
    - [x] FieldEditor 组件
-   - [x] TemplateInheritanceSelector 组件
+   - [x] ModelInheritanceSelector 组件
    - [ ] FieldPreview 组件
    - [ ] ValidationFeedback 组件
 
@@ -149,17 +149,17 @@
 
 ## 开发计划
 
-1. 模板列表页面（/templates）：
-   - 路由：pages/templates/index.tsx
-   - 组件：components/template/TemplateList.tsx, TemplateCard.tsx
-   - 状态：atoms/templateAtoms.ts (templateListAtom, selectedTemplateAtom)
-   - GraphQL：queries/templateQueries.ts (GET_TEMPLATES, GET_TEMPLATE_WITH_INHERITANCE)
+1. 模板列表页面（/models）：
+   - 路由：pages/models/index.tsx
+   - 组件：components/model/ModelList.tsx, ModelCard.tsx
+   - 状态：atoms/modelAtoms.ts (modelListAtom, selectedModelAtom)
+   - GraphQL：queries/modelQueries.ts (GET_MODELS, GET_MODEL_WITH_INHERITANCE)
 
-2. 模板编辑器（/templates/[id]/edit）：
-   - 路由：pages/templates/[id]/edit.tsx
-   - 组件：components/template/TemplateEditor/, FieldEditor/, InheritanceManager/
-   - Hook：hooks/useTemplate.ts (处理模板CRUD、字段管理、继承关系)
-   - 状态：atoms/templateEditorAtoms.ts (editingTemplateAtom, fieldGroupsAtom)
+2. 模板编辑器（/models/[id]/edit）：
+   - 路由：pages/models/[id]/edit.tsx
+   - 组件：components/model/ModelEditor/, FieldEditor/, InheritanceManager/
+   - Hook：hooks/useModel.ts (处理模板CRUD、字段管理、继承关系)
+   - 状态：atoms/modelEditorAtoms.ts (editingModelAtom, fieldGroupsAtom)
 
 3. 开发顺序：
    1. 基础模板列表 -> 查看详情 -> 简单创建

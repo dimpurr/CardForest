@@ -2,13 +2,13 @@
 
 ## 概述
 
-模板系统定义了卡片的结构和行为，采用面向对象的设计理念。每个模板可以继承自一个或多个模板，形成原型链式的继承结构。所有模板最终都继承自基础模板（Basic Template）。
+模板系统定义了卡片的结构和行为，采用面向对象的设计理念。每个模板可以继承自一个或多个模板，形成原型链式的继承结构。所有模板最终都继承自基础模板（Basic Model）。
 
 ## 数据模型
 
 ### 模板结构
 ```typescript
-interface Template {
+interface Model {
   _key: string;            // ArangoDB 文档键
   name: string;            // 模板名称
   inherits_from: string[]; // 继承的模板列表
@@ -32,7 +32,7 @@ interface FieldDefinition {
 
 ### 基础模板
 ```typescript
-const BasicTemplate = {
+const BasicModel = {
   name: 'basic',
   system: true,
   inherits_from: [],
@@ -63,7 +63,7 @@ const BasicTemplate = {
 
 ### 日期卡片模板
 ```typescript
-const DateTemplate = {
+const DateModel = {
   name: 'datecard',
   system: true,
   inherits_from: ['basic'],
@@ -119,7 +119,7 @@ const DateTemplate = {
 
 ### 3. GraphQL API
 ```graphql
-type Template {
+type Model {
   _key: ID!
   name: String!
   inherits_from: [String!]!
@@ -161,8 +161,8 @@ type FieldDefinition {
 
 ## 相关文件
 
-- `src/services/template.service.ts`
-- `src/graphql/template.resolver.ts`
+- `src/services/model.service.ts`
+- `src/graphql/model.resolver.ts`
 - `src/graphql/schema.graphql`
 
 ## 扩展点

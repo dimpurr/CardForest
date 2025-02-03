@@ -4,7 +4,7 @@ export const GET_CARD = gql`
   query GetCard($id: ID!) {
     card(id: $id) {
       _id
-      templateId
+      modelId
       title
       content
       body
@@ -18,11 +18,11 @@ export const GET_CARD = gql`
   }
 `;
 
-export const GET_CARD_WITH_TEMPLATE = gql`
-  query GetCardWithTemplate($id: ID!) {
+export const GET_CARD_WITH_MODEL = gql`
+  query GetCardWithModel($id: ID!) {
     card(id: $id) {
       _id
-      templateId
+      modelId
       title
       content
       body
@@ -32,7 +32,7 @@ export const GET_CARD_WITH_TEMPLATE = gql`
       createdBy {
         username
       }
-      template {
+      model {
         _id
         name
         fields {
@@ -54,14 +54,14 @@ export const GET_MY_CARDS = gql`
   query GetMyCards {
     myCards {
       _id
-      templateId
+      modelId
       title
       content
       body
       meta
       createdAt
       updatedAt
-      template {
+      model {
         _id
         name
         fields

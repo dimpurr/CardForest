@@ -1,11 +1,11 @@
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import { useEffect } from 'react';
-import { TemplateList } from '@/components/template/TemplateList';
-import { useJWT } from '@/hooks/useJWT';
 import { Layout } from '@/components/Layout';
+import { ModelEditor } from '@/components/model/ModelEditor';
+import { useJWT } from '@/hooks/useJWT';
 
-export default function TemplatesPage() {
+export default function NewModelPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const { jwt } = useJWT();
@@ -27,16 +27,16 @@ export default function TemplatesPage() {
   return (
     <Layout>
       <div className="p-4">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Templates</h1>
+        <div className="flex items-center mb-6">
           <button
-            onClick={() => router.push('/templates/new')}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+            onClick={() => router.back()}
+            className="mr-4 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
           >
-            Create Template
+            ← Back
           </button>
+          <h1 className="text-2xl font-bold">Create New Model</h1>
         </div>
-        <TemplateList />
+        <ModelEditor mode="create" />
       </div>
     </Layout>
   );
