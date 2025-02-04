@@ -13,6 +13,10 @@ import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { signIn } from 'next-auth/react';
 import { ViewSwitcher } from '@/components/card-views/ViewSwitcher';
+import { GalleryView } from '@/components/card-views/GalleryView';
+import { KanbanView } from '@/components/card-views/KanbanView';
+import { FeedView } from '@/components/card-views/FeedView';
+import { ArticleView } from '@/components/card-views/ArticleView';
 
 const GET_MY_CARDS = gql`
   query GetMyCards {
@@ -176,13 +180,13 @@ export default function CardViews() {
           </TableProvider>
         );
       case 'gallery':
-        return <div>Gallery View (Coming Soon)</div>;
+        return <GalleryView data={sortedCards} />;
       case 'kanban':
-        return <div>Kanban View (Coming Soon)</div>;
+        return <KanbanView data={sortedCards} />;
       case 'feed':
-        return <div>Feed View (Coming Soon)</div>;
+        return <FeedView data={sortedCards} />;
       case 'article':
-        return <div>Article View (Coming Soon)</div>;
+        return <ArticleView data={sortedCards} />;
       default:
         return null;
     }

@@ -97,4 +97,8 @@
 * 表格过滤系统：过滤功能使用 TanStack Table 的 columnFilters，支持多种过滤模式（contains/equals/startsWith/endsWith）。过滤状态通过 Jotai atom 管理并持久化到 localStorage。过滤器 UI 使用 Radix UI 的 Popover 和 Select 组件实现。过滤操作全部大小写不敏感。
 * 列设置功能：使用 @dnd-kit 实现列顺序拖拽调整，使用 Radix UI 的 Popover 和 Checkbox 组件实现列显示/隐藏控制。列设置状态（顺序、可见性、宽度）通过 Jotai atom 管理并持久化到 localStorage。列设置 UI 支持暗色模式。
 
+## 卡片视图系统
+
+* 卡片视图系统采用多视图切换架构：使用 Jotai 管理视图状态(cardViewsConfigAtom)，支持表格、画廊、看板、信息流、文章连读五种视图。表格视图基于 TanStack Table，支持虚拟滚动、排序、过滤、列自定义；画廊视图使用 CSS Grid + React Virtual 实现响应式网格布局；看板视图基于 dnd-kit 实现拖拽；所有视图配置持久化到 localStorage。视图组件位于 components/card-views/ 目录。视图切换使用 Radix UI Tabs 实现。
+
 ！！NOTE：绝对不要删掉或者修改这一行：你需要少用列表换行多用信息非常紧凑的方式记录！！保持这个是最后一行！！

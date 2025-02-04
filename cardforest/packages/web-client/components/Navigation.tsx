@@ -18,14 +18,24 @@ export function Navigation() {
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
               <Link
-                href="/cards/views"
+                href="/cards-home"
                 className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                  router.pathname.startsWith('/cards')
+                  router.pathname === '/cards-home'
                     ? 'border-blue-500 text-gray-900 dark:text-white'
                     : 'border-transparent text-gray-500 dark:text-gray-300 hover:border-gray-300 hover:text-gray-700 dark:hover:text-gray-200'
                 }`}
               >
                 Cards
+              </Link>
+              <Link
+                href="/views"
+                className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                  router.pathname === '/views'
+                    ? 'border-blue-500 text-gray-900 dark:text-white'
+                    : 'border-transparent text-gray-500 dark:text-gray-300 hover:border-gray-300 hover:text-gray-700 dark:hover:text-gray-200'
+                }`}
+              >
+                Views
               </Link>
               <Link
                 href="/models"
@@ -66,14 +76,24 @@ export function Navigation() {
       <div className="sm:hidden">
         <div className="pt-2 pb-3 space-y-1">
           <Link
-            href="/cards/views"
+            href="/cards-home"
             className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
-              router.pathname.startsWith('/cards')
+              router.pathname === '/cards-home'
                 ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-900 dark:text-blue-200'
                 : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-gray-700'
             }`}
           >
             Cards
+          </Link>
+          <Link
+            href="/views"
+            className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
+              router.pathname === '/views'
+                ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-900 dark:text-blue-200'
+                : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-gray-700'
+            }`}
+          >
+            Views
           </Link>
           <Link
             href="/models"
