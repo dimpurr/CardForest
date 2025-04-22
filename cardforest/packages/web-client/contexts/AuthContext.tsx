@@ -1,10 +1,10 @@
 import { createContext, useContext, useEffect, ReactNode } from 'react';
 import { useSession } from 'next-auth/react';
 import { useAtom } from 'jotai';
-import { 
-  currentUserAtom, 
-  jwtAtom, 
-  isAuthenticatedAtom, 
+import {
+  currentUserAtom,
+  jwtAtom,
+  isAuthenticatedAtom,
   authSourceAtom,
   User
 } from '@/atoms/authAtoms';
@@ -17,7 +17,7 @@ interface AuthContextType {
   jwt: string | null;
   isAuthenticated: boolean;
   authSource: string | null;
-  login: (provider: string, useBackend?: boolean) => Promise<void>;
+  login: (provider: string, useBackend?: boolean, callbackUrl?: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const authenticated = AuthService.isAuthenticated(session);
     setIsAuthenticated(authenticated);
-    
+
     const source = AuthService.getAuthSource(session);
     setAuthSource(source);
   }, [session, jwt, setIsAuthenticated, setAuthSource]);
@@ -59,11 +59,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   // 登录方法
-  const login = async (provider: string, useBackend = false) => {
-    if (useBackend) {
-      AuthService.loginWithBackend(provider);
-    } else {
-      await AuthService.loginWithNextAuth(provider);
+  const login = async (provider: string, useBackend = false, callbackUrl?: string) => {
+    try {
+      if (useBackend) {
+        AuthService.loginWithBackend(provider, callbackUrl);
+      } else {
+        await AuthService.loginWithNextAuth(provider, callbackUrl);
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
     }
   };
 

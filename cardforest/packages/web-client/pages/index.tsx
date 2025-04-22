@@ -1,24 +1,26 @@
-import { useSession } from 'next-auth/react';
-import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/Button';
 import { Layout } from '@/components/Layout';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Home() {
-  const { data: session } = useSession();
+  const { isAuthenticated, login } = useAuth();
+
+  const handleLogin = () => {
+    login('github');
+  };
 
   return (
-    <Layout>
+    <Layout
+      title="Welcome"
+      description="Your personal knowledge garden. Create, organize, and share your thoughts with ease."
+    >
       <div className="p-6">
-        <div className="flex min-h-[calc(100vh-12rem)] flex-col items-center justify-center">
+        <div className="flex min-h-[calc(100vh-16rem)] flex-col items-center justify-center">
           <div className="card p-6 space-y-6 max-w-lg w-full">
-            <h1 className="text-3xl font-bold text-center">Welcome to CardForest</h1>
-            <p className="text-neutral-600 dark:text-neutral-400 text-center">
-              Your personal knowledge garden. Create, organize, and share your thoughts with ease.
-            </p>
-            {!session ? (
+            {!isAuthenticated ? (
               <div className="flex gap-4 justify-center">
-                <Button variant="primary" onClick={() => signIn('github')}>
+                <Button variant="primary" onClick={handleLogin}>
                   Sign in with GitHub
                 </Button>
               </div>

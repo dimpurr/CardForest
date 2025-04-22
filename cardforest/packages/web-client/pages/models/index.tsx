@@ -1,40 +1,50 @@
-import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import { useEffect } from 'react';
 import { ModelList } from '@/components/model/ModelList';
-import { useJWT } from '@/hooks/useJWT';
 import { Layout } from '@/components/Layout';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/Button';
 
 export default function ModelsPage() {
-  const { data: session, status } = useSession();
   const router = useRouter();
-  const { jwt } = useJWT();
+  const { isAuthenticated, loading } = useAuth();
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/');
+    if (!loading && !isAuthenticated) {
+      router.push('/auth/signin?callbackUrl=' + encodeURIComponent('/models'));
     }
-  }, [status, router]);
+  }, [isAuthenticated, loading, router]);
 
-  if (status === 'loading') {
-    return <div>Loading...</div>;
+  if (loading) {
+    return (
+      <Layout title="Loading...">
+        <div className="p-4 flex justify-center">
+          <div className="animate-pulse">Loading models...</div>
+        </div>
+      </Layout>
+    );
   }
 
-  if (!session || !jwt) {
-    return null;
+  if (!isAuthenticated) {
+    return null; // Will redirect in useEffect
   }
 
   return (
-    <Layout>
+    <Layout
+      title="Models"
+      description="Create and manage your card models"
+      breadcrumbs={[
+        { label: 'Models' }
+      ]}
+    >
       <div className="p-4">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Models</h1>
-          <button
+        <div className="flex justify-end mb-6">
+          <Button
+            variant="primary"
             onClick={() => router.push('/models/new')}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
           >
             Create Model
-          </button>
+          </Button>
         </div>
         <ModelList />
       </div>

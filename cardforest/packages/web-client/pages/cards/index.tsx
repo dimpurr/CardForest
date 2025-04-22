@@ -1,54 +1,52 @@
-import { useSession } from 'next-auth/react';
-import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { CreateCard } from '@/components/CreateCard';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAtom } from 'jotai';
 import { sortedCardsAtom } from '@/atoms/cardAtoms';
 import { Layout } from '@/components/Layout';
 import { useCards } from '@/hooks/api/useCards';
 import { CardList } from '@/components/card';
+import { useRouter } from 'next/router';
 
 export default function CardsPage() {
-  const { data: session, status: sessionStatus } = useSession();
-  const { user, jwt, isAuthenticated, logout } = useAuth();
-  const { cards, loading, error } = useCards();
+  const router = useRouter();
+  const { user, isAuthenticated, loading, logout } = useAuth();
+  const { cards, loading: cardsLoading, error } = useCards();
   const [sortedCards] = useAtom(sortedCardsAtom);
 
-  console.log('Auth State:', {
-    session: !!session,
-    user: !!user,
-    jwt: !!jwt,
-    sessionStatus,
-    isAuthenticated
-  });
+  // 如果未登录，重定向到登录页面
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      router.push('/auth/signin?callbackUrl=' + encodeURIComponent('/cards'));
+    }
+  }, [isAuthenticated, loading, router]);
 
   const handleSignOut = useCallback(async () => {
     await logout();
-  }, [logout]);
+    router.push('/');
+  }, [logout, router]);
 
-
-
-  if (sessionStatus === 'loading') {
+  if (loading) {
     return (
-      <Layout>
-        <div className="p-6">
-          <Alert>
-            <Alert.Description>Loading session...</Alert.Description>
-          </Alert>
+      <Layout title="Loading...">
+        <div className="p-4 flex justify-center">
+          <div className="animate-pulse">Loading...</div>
         </div>
       </Layout>
     );
   }
 
-  const showError = error && session;
+  if (!isAuthenticated) {
+    return null; // Will redirect in useEffect
+  }
+
   const isAuthError = error?.message === 'Forbidden resource';
 
-  if (showError && isAuthError) {
+  if (error && isAuthError) {
     return (
-      <Layout>
+      <Layout title="Session Expired">
         <div className="p-6">
           <Alert variant="error">
             <Alert.Title>Session Expired</Alert.Title>
@@ -56,7 +54,10 @@ export default function CardsPage() {
               Your session has expired. Please sign in again.
             </Alert.Description>
             <div className="mt-4">
-              <Button variant="primary" onClick={() => signIn('github')}>
+              <Button
+                variant="primary"
+                onClick={() => router.push('/auth/signin')}
+              >
                 Sign in again
               </Button>
             </div>
@@ -66,48 +67,18 @@ export default function CardsPage() {
     );
   }
 
-  // 如果没有登录，显示登录选项
-  if (!session) {
-    return (
-      <Layout>
-        <div className="p-6">
-          <h1 className="text-2xl font-bold mb-6">CardForest Login</h1>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="p-6 border rounded-lg shadow-sm">
-              <h2 className="text-xl font-semibold mb-4">Frontend Login</h2>
-              <p className="mb-4 text-gray-600">
-                Use NextAuth to authenticate with GitHub. This is the recommended method.
-              </p>
-              <Button variant="primary" onClick={() => useAuth().login('github')}>
-                Sign in with GitHub (Frontend)
-              </Button>
-            </div>
-
-            <div className="p-6 border rounded-lg shadow-sm">
-              <h2 className="text-xl font-semibold mb-4">Backend Login</h2>
-              <p className="mb-4 text-gray-600">
-                Authenticate directly with the backend server. Use this if frontend login doesn't work.
-              </p>
-              <Button
-                variant="secondary"
-                onClick={() => useAuth().login('github', true)}
-              >
-                Sign in with GitHub (Backend)
-              </Button>
-            </div>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
   return (
-    <Layout>
-      <div className="p-6">
+    <Layout
+      title="My Cards"
+      description="View and manage your knowledge cards"
+      breadcrumbs={[
+        { label: 'Cards' }
+      ]}
+    >
+      <div className="p-4">
         <div className="space-y-6">
           <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold">My Cards</h1>
+            <div className="flex-grow"></div>
             <Button variant="secondary" onClick={handleSignOut}>
               Sign out
             </Button>
@@ -118,12 +89,9 @@ export default function CardsPage() {
             <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded mb-6">
               <h2 className="text-lg font-semibold mb-2">Debug Info</h2>
               <div className="text-sm">
-                <p>Session: {session ? 'Yes' : 'No'}</p>
-                <p>JWT: {jwt ? 'Yes' : 'No'}</p>
+                <p>JWT: {user ? 'Yes' : 'No'}</p>
                 <p>Auth Status: {isAuthenticated ? 'Authenticated' : 'Not Authenticated'}</p>
-                <p>Session Status: {sessionStatus}</p>
                 <p>User: {user?.username || 'None'}</p>
-                <p>Backend JWT: {session?.backendJwt ? session.backendJwt.substring(0, 20) + '...' : 'None'}</p>
               </div>
             </div>
           )}
@@ -135,7 +103,7 @@ export default function CardsPage() {
             </div>
             <CardList
               cards={sortedCards}
-              loading={loading}
+              loading={cardsLoading}
               error={error}
               emptyMessage="No cards yet. Create your first card to get started!"
             />

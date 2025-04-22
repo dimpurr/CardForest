@@ -1,35 +1,18 @@
 import { useEffect } from 'react';
-import { useSession, signIn } from 'next-auth/react';
 import { useRouter } from 'next/router';
-import { Button, VStack, Text, Container, Center } from '@chakra-ui/react';
 
 export default function LoginPage() {
-  const { data: session, status } = useSession();
   const router = useRouter();
 
   useEffect(() => {
-    if (session) {
-      router.push('/'); // Redirect to home if already logged in
-    }
-  }, [session, router]);
+    // 重定向到统一的登录页面
+    router.replace('/auth/signin');
+  }, [router]);
 
-  if (status === 'loading') {
-    return <Text>Loading...</Text>;
-  }
-
+  // 返回一个空的加载状态，因为这个页面会立即重定向
   return (
-    <Container>
-      <Center h="100vh">
-        <VStack spacing={4}>
-          <Text fontSize="2xl">Welcome to CardForest</Text>
-          <Button
-            colorScheme="blue"
-            onClick={() => signIn('github', { callbackUrl: '/' })}
-          >
-            Sign in with GitHub
-          </Button>
-        </VStack>
-      </Center>
-    </Container>
+    <div className="flex items-center justify-center h-screen">
+      <p className="text-gray-500">Redirecting to login page...</p>
+    </div>
   );
 }

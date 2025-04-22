@@ -1,9 +1,9 @@
-import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function Navigation() {
-  const { data: session } = useSession();
+  const { user, isAuthenticated, logout } = useAuth();
   const router = useRouter();
 
   return (
@@ -40,11 +40,11 @@ export function Navigation() {
             </div>
           </div>
           <div className="hidden sm:ml-6 sm:flex sm:items-center">
-            {session ? (
+            {isAuthenticated ? (
               <div className="flex items-center space-x-4">
-                <span className="text-sm text-gray-700 dark:text-gray-300">{session.user?.name}</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">{user?.username}</span>
                 <button
-                  onClick={() => signOut()}
+                  onClick={() => logout()}
                   className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                 >
                   Sign out
@@ -52,7 +52,7 @@ export function Navigation() {
               </div>
             ) : (
               <Link
-                href="/api/auth/signin"
+                href="/auth/signin"
                 className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
               >
                 Sign in
@@ -86,16 +86,16 @@ export function Navigation() {
             Models
           </Link>
         </div>
-        {session && (
+        {isAuthenticated && (
           <div className="pt-4 pb-3 border-t border-gray-200 dark:border-gray-700">
             <div className="flex items-center px-4">
               <div className="flex-shrink-0">
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {session.user?.name}
+                  {user?.username}
                 </span>
               </div>
               <button
-                onClick={() => signOut()}
+                onClick={() => logout()}
                 className="ml-auto text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
               >
                 Sign out
