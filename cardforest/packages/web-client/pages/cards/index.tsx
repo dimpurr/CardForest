@@ -1,66 +1,37 @@
 import { useSession } from 'next-auth/react';
-import { useQuery } from '@apollo/client';
-import { signIn, signOut } from 'next-auth/react';
+import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { CreateCard } from '@/components/CreateCard';
-import { useCallback, useEffect } from 'react';
-import { useJWT } from '@/hooks/useJWT';
+import { useCallback } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useAtom } from 'jotai';
-import { cardsAtom, sortedCardsAtom } from '@/atoms/cardAtoms';
+import { sortedCardsAtom } from '@/atoms/cardAtoms';
 import { Layout } from '@/components/Layout';
-import { GET_MY_CARDS } from '@/graphql/queries/cardQueries';
+import { useCards } from '@/hooks/api/useCards';
+import { CardList } from '@/components/card';
 
 export default function CardsPage() {
   const { data: session, status: sessionStatus } = useSession();
-  const { jwt, isAuthenticated, status: jwtStatus } = useJWT();
-  const [, setCards] = useAtom(cardsAtom);
+  const { user, jwt, isAuthenticated, logout } = useAuth();
+  const { cards, loading, error } = useCards();
   const [sortedCards] = useAtom(sortedCardsAtom);
 
   console.log('Auth State:', {
     session: !!session,
+    user: !!user,
     jwt: !!jwt,
     sessionStatus,
-    jwtStatus
+    isAuthenticated
   });
-
-  const { loading, error, data } = useQuery(GET_MY_CARDS, {
-    skip: !isAuthenticated,
-    onCompleted: (data) => {
-      console.log('Query completed:', data);
-      if (data?.myCards) {
-        setCards(data.myCards);
-      }
-    },
-    onError: (error) => {
-      console.error('Query error:', error);
-    }
-  });
-
-  console.log('Query State:', { loading, error: error?.message, data });
 
   const handleSignOut = useCallback(async () => {
-    document.cookie = 'jwt=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    document.cookie = 'next-auth.session-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    setCards([]);
-    await signOut();
-  }, [setCards]);
+    await logout();
+  }, [logout]);
 
-  useEffect(() => {
-    console.log('Effect triggered:', {
-      hasSession: !!session,
-      hasJwt: !!jwt,
-      sessionStatus,
-      jwtStatus
-    });
 
-    if (!session || !jwt) {
-      console.log('Clearing cards...');
-      setCards([]);
-    }
-  }, [session, jwt, sessionStatus, jwtStatus, setCards]);
 
-  if (sessionStatus === 'loading' || jwtStatus === 'loading') {
+  if (sessionStatus === 'loading') {
     return (
       <Layout>
         <div className="p-6">
@@ -108,7 +79,7 @@ export default function CardsPage() {
               <p className="mb-4 text-gray-600">
                 Use NextAuth to authenticate with GitHub. This is the recommended method.
               </p>
-              <Button variant="primary" onClick={() => signIn('github')}>
+              <Button variant="primary" onClick={() => useAuth().login('github')}>
                 Sign in with GitHub (Frontend)
               </Button>
             </div>
@@ -118,12 +89,12 @@ export default function CardsPage() {
               <p className="mb-4 text-gray-600">
                 Authenticate directly with the backend server. Use this if frontend login doesn't work.
               </p>
-              <a
-                href="http://localhost:3030/user/auth/github"
-                className="inline-block px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600"
+              <Button
+                variant="secondary"
+                onClick={() => useAuth().login('github', true)}
               >
                 Sign in with GitHub (Backend)
-              </a>
+              </Button>
             </div>
           </div>
         </div>
@@ -151,7 +122,7 @@ export default function CardsPage() {
                 <p>JWT: {jwt ? 'Yes' : 'No'}</p>
                 <p>Auth Status: {isAuthenticated ? 'Authenticated' : 'Not Authenticated'}</p>
                 <p>Session Status: {sessionStatus}</p>
-                <p>JWT Status: {jwtStatus}</p>
+                <p>User: {user?.username || 'None'}</p>
                 <p>Backend JWT: {session?.backendJwt ? session.backendJwt.substring(0, 20) + '...' : 'None'}</p>
               </div>
             </div>
@@ -162,34 +133,12 @@ export default function CardsPage() {
               <h2 className="text-xl font-semibold">All Cards</h2>
               <CreateCard />
             </div>
-            {loading ? (
-              <Alert>
-                <Alert.Description>Loading cards...</Alert.Description>
-              </Alert>
-            ) : error ? (
-              <Alert variant="error">
-                <Alert.Title>Error</Alert.Title>
-                <Alert.Description>{error.message}</Alert.Description>
-              </Alert>
-            ) : sortedCards.length === 0 ? (
-              <Alert variant="default">
-                <Alert.Description>
-                  No cards yet. Create your first card to get started!
-                </Alert.Description>
-              </Alert>
-            ) : (
-              <div className="grid gap-4">
-                {sortedCards.map((card) => (
-                  <div key={card._id} className="card p-4 space-y-2">
-                    <h3 className="text-lg font-medium">{card.title}</h3>
-                    <p className="text-neutral-600 dark:text-neutral-400">{card.content}</p>
-                    <p className="text-sm text-neutral-500">
-                      Created at: {new Date(card.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
+            <CardList
+              cards={sortedCards}
+              loading={loading}
+              error={error}
+              emptyMessage="No cards yet. Create your first card to get started!"
+            />
           </div>
         </div>
       </div>

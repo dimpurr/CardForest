@@ -1,8 +1,8 @@
 import { ApolloClient, InMemoryCache, createHttpLink } from '@apollo/client'
 import { setContext } from '@apollo/client/link/context'
-import Cookies from 'js-cookie'
 import merge from 'deepmerge'
 import { getSession } from './getSession' // Assuming getSession is defined in a separate file
+import { AuthService } from '@/services/auth'
 
 const httpLink = createHttpLink({
   uri: process.env.NEXT_PUBLIC_GRAPHQL_URL || 'http://localhost:3030/graphql',
@@ -15,29 +15,9 @@ const authLink = setContext(async (operation, { headers }) => {
     hasHeaders: !!headers
   });
 
-  // 从多个来源获取 JWT
-  // 1. 从 session 中获取
+  // 使用 AuthService 获取 JWT
   const session = await getSession()
-  let jwt = session?.backendJwt
-
-  // 2. 如果 session 中没有，尝试从 cookie 中获取
-  if (!jwt && typeof window !== 'undefined') {
-    jwt = Cookies.get('jwt')
-    console.log('Got JWT from cookie:', !!jwt)
-
-    // 3. 如果 cookie 中没有，尝试从 URL 参数中获取
-    if (!jwt) {
-      const urlParams = new URLSearchParams(window.location.search)
-      const tokenParam = urlParams.get('token')
-      if (tokenParam) {
-        jwt = decodeURIComponent(tokenParam)
-        console.log('Got JWT from URL parameter:', !!jwt)
-
-        // 将 JWT 存入 cookie 以便于后续使用
-        Cookies.set('jwt', jwt, { expires: 1 }) // 1 day
-      }
-    }
-  }
+  const jwt = AuthService.getJWT(session)
 
   console.log('Apollo authLink JWT:', {
     hasJwt: !!jwt,
