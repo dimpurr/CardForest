@@ -1,5 +1,14 @@
 {
-    "workbench.colorCustomizations": {
-        "window.activeBorder": "#FFD700"
-    }
-} 
+  "workbench.colorCustomizations": {
+    "titleBar.activeBackground": "#3a330d",
+    "titleBar.activeForeground": "#ffffff",
+    "activityBar.background": "#3a330d",
+    "activityBar.foreground": "#ffffff",
+    "activityBarBadge.background": "#9c27b0",
+    "activityBarBadge.foreground": "#ffffff",
+    "statusBar.background": "#3a330d",
+    "statusBar.foreground": "#ffffff"
+  },
+  "deno.enablePaths": ["supabase/functions"],
+  "deno.enable": false
+}
