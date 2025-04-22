@@ -47,7 +47,7 @@ import { ModelController } from '../controllers/model.controller';
       },
       formatError: (error: any) => {
         console.error('GraphQL Error:', error);
-        
+
         interface OriginalError {
           message?: string;
           code?: string;
@@ -60,7 +60,7 @@ import { ModelController } from '../controllers/model.controller';
 
         const extensions = error.extensions as ErrorExtensions | undefined;
         const originalError = extensions?.originalError;
-        
+
         // 处理 extensions 中的错误信息
         if (originalError) {
           return {
@@ -70,7 +70,7 @@ import { ModelController } from '../controllers/model.controller';
             path: error.path,
           };
         }
-        
+
         // 返回原始错误
         return {
           message: error.message,
@@ -83,6 +83,7 @@ import { ModelController } from '../controllers/model.controller';
     UserModule,
     DatabaseModule,
     AuthModule,
+    RepositoryModule,
   ],
   controllers: [AppController, CardController, AuthController, InstallController, ModelController],
   providers: [
