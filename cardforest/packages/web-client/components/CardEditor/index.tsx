@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useQuery } from '@apollo/client';
 import { useAtom } from 'jotai';
-import { GET_MODEL_BY_ID } from '../../graphql/queries';
+import { GET_MODEL_BY_ID } from '@/graphql/queries/modelQueries';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
 import { Alert } from '../ui/Alert';
@@ -72,12 +72,12 @@ export function CardEditor({ modelId, initialData, onChange }: CardEditorProps) 
   };
 
   // Find basic fields group
-  const basicFields = model.fields.find(group => 
+  const basicFields = model.fields.find(group =>
     group._inherit_from === 'basic' || group._inherit_from === '_self'
   )?.fields || [];
 
   // Find meta fields groups (all except basic)
-  const metaGroups = model.fields.filter(group => 
+  const metaGroups = model.fields.filter(group =>
     group._inherit_from !== 'basic' && group._inherit_from !== '_self'
   );
 

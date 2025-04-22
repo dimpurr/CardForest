@@ -1,5 +1,5 @@
 import { useSession } from 'next-auth/react';
-import { useQuery, gql } from '@apollo/client';
+import { useQuery } from '@apollo/client';
 import { signIn, signOut } from 'next-auth/react';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
@@ -9,37 +9,7 @@ import { useJWT } from '@/hooks/useJWT';
 import { useAtom } from 'jotai';
 import { cardsAtom, sortedCardsAtom } from '@/store/cards';
 import { Layout } from '@/components/Layout';
-
-const GET_MY_CARDS = gql`
-  query GetMyCards {
-    myCards {
-      _id
-      modelId
-      title
-      content
-      body
-      meta
-      createdAt
-      updatedAt
-      model {
-        _id
-        name
-        fields {
-          _inherit_from
-          fields {
-            name
-            type
-            required
-            default
-          }
-        }
-      }
-      createdBy {
-        username
-      }
-    }
-  }
-`;
+import { GET_MY_CARDS } from '@/graphql/queries/cardQueries';
 
 export default function CardsPage() {
   const { data: session, status: sessionStatus } = useSession();
