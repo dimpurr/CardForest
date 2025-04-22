@@ -30,7 +30,8 @@ export function CardForm({ model, onSubmit, defaultValues = {} }: CardFormProps)
   }, [form, onSubmit]);
 
   const renderField = (field: FieldDefinition) => {
-    const { name, type = 'text', required = false, config = {} } = field;
+    const { name, type = 'text', required = false, config } = field;
+    const fieldConfig = config || {};
 
     return (
       <FormField
@@ -46,21 +47,21 @@ export function CardForm({ model, onSubmit, defaultValues = {} }: CardFormProps)
                   <Input
                     {...formField}
                     type="text"
-                    placeholder={config.placeholder || `Enter ${name}`}
+                    placeholder={fieldConfig.placeholder || `Enter ${name}`}
                   />
                 );
               case 'textarea':
                 return (
                   <Textarea
                     {...formField}
-                    placeholder={config.placeholder || `Enter ${name}`}
+                    placeholder={fieldConfig.placeholder || `Enter ${name}`}
                   />
                 );
               case 'richtext':
                 return (
                   <TiptapEditor
                     {...formField}
-                    placeholder={config.placeholder || `Enter ${name}`}
+                    placeholder={fieldConfig.placeholder || `Enter ${name}`}
                   />
                 );
               case 'checkbox':
@@ -76,7 +77,7 @@ export function CardForm({ model, onSubmit, defaultValues = {} }: CardFormProps)
                   <Input
                     {...formField}
                     type="text"
-                    placeholder={config.placeholder || `Enter ${name}`}
+                    placeholder={fieldConfig.placeholder || `Enter ${name}`}
                   />
                 );
             }

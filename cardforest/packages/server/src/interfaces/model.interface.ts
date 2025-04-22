@@ -31,6 +31,7 @@ export interface FlattenedModel {
   _id?: string;
   _rev?: string;
   name: string;
+  inherits_from: string[];  // List of models this model inherits from
   fields: FieldGroup[];  // Changed from Record<string, FieldDefinition> to FieldGroup[]
   system: boolean;
   createdAt: string;

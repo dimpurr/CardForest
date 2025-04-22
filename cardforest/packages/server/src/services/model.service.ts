@@ -107,6 +107,7 @@ export class ModelService {
       _key: model._key,
       _id: model._id,
       name: model.name,
+      inherits_from: model.inherits_from || [],
       fields: model.fields,
       system: model.system,
       createdAt: model.createdAt,

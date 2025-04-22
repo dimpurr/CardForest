@@ -50,6 +50,10 @@
 ## 前端调试
 * 调试数据展示：创建全局DebugPanel组件，支持折叠/展开，仅在开发环境显示。使用JSON.stringify(data,null,2)格式化展示。调试GraphQL数据时展示original和processed两部分，帮助理解数据转换过程。组件放在@/components/debug目录。
 
+## 前端路由与认证保护
+* 路由保护实现：使用`ProtectedRoute`组件和`withAuth`高阶组件统一处理认证保护。`withAuth`接收两个参数：组件和配置选项(fallbackUrl和handleErrors)。路由保护流程：1)检查认证状态；2)未认证时重定向到登录页面并传递回调URL；3)认证成功时渲染组件；4)可选处理API错误(如401/403)。路由配置集中在`config/routes.ts`，包含路由定义、导航菜单和面包屑生成函数，确保路径一致性。
+* 双重认证系统维护：CardForest维护两套认证系统：1)前端NextAuth认证(主要用户流程)；2)后端直接OAuth认证(API调试用)。关键点：a)保持`/auth/signin`页面同时支持两种登录方式；b)使用统一的`AuthContext`和`useAuth`钩子管理认证状态；c)JWT处理从多个来源获取(session/cookie/URL)；d)认证回调页面(`/auth/callback`)处理两种认证流程；e)使用`routes.ts`确保所有认证相关URL一致。前端组件使用`withAuth(Component, {handleErrors:true})`保护，后端API使用`@UseGuards(AuthGuard)`保护。
+
 ## 经验教训
 
 * GraphQL query 的 skip 条件要谨慎，比如 `skip: !isAuthenticated` 如果 isAuthenticated 判断不当会导致查询永远不执行。最好在 useJWT 这样的 hook 里只检查 session 状态而不要同时要求 JWT 存在，因为用户可能通过不同方式登录。
