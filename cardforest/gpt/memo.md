@@ -36,7 +36,7 @@
 * 模板继承采用原型链机制：festival_date_card -> datecard -> basic_card，字段按来源分组存储，每组用_inherit_from标记来源模板。编辑器中title/body/content在顶部，meta区域按模板来源分组显示。字段存储格式：{name:"festival_date_card", inherits_from:["datecard"], fields:[{_inherit_from:"basic_card",fields:[{name:"title",type:"text"}]},{_inherit_from:"datecard",fields:[{name:"start_date",type:"date"}]},{_inherit_from:"_self",fields:[{name:"origin",type:"text"}]}]}。GraphQL返回扁平化字段用flattenedFields保持兼容。
 * 模板字段设计关键点：(1)Model和FlattenedModel的fields类型必须保持一致，统一用FieldGroup[]数组结构，避免使用Record<string,FieldDefinition>以防前后端不一致；(2)字段分组用_inherit_from区分基础字段(basic/_self)和meta字段；(3)GraphQL schema中不要用JSON类型表示复杂结构，应该完整定义字段类型以获得类型检查；(4)前端根据_inherit_from渲染不同区域，basic字段和meta字段分开展示。
 * 模板继承实现注意点：(1)所有获取模板的接口都要处理继承关系，包括getModelById；(2)继承处理通过getModelWithInheritance方法合并所有父模板的字段；(3)字段合并时保持_inherit_from标记以便前端区分字段来源；(4)GraphQL查询需要包含完整的字段结构。/ GraphQL 查询 - `GET_MODEL_WITH_INHERITANCE`: 获取模板及其继承关系 - `CREATE_MODEL`, `UPDATE_MODEL`: 分别用于创建和更新模板   - 查询和变更分别放在 queries/ 和 mutations/ 目录下
-* 在设计 GraphQL Schema 时，需要注意以下几点： **类型统一性**：如果两个类型有相同的字段结构，应该尽量合并成一个类型，而不是创建多个相似的类型。这样可以： - 允许 Fragment 在不同查询间复用 - 减少类型定义的重复 - 简化客户端的类型处理  **类型扩展方式**： - 使用字段标记而不是新类型来区分变体 - 必要时使用 interface 来共享字段 - 考虑使用 union type 来处理多态性  **实际案例**： - 原本将 `Model` 和 `FlattenedModel` 分开定义，导致 Fragment 无法复用 - 解决方案是合并为单一的 `Model` 类型，通过查询方法的不同来返回不同的数据结构 - 保持了类型系统的简洁性，同时提高了代码的可维护性 
+* 在设计 GraphQL Schema 时，需要注意以下几点： **类型统一性**：如果两个类型有相同的字段结构，应该尽量合并成一个类型，而不是创建多个相似的类型。这样可以： - 允许 Fragment 在不同查询间复用 - 减少类型定义的重复 - 简化客户端的类型处理  **类型扩展方式**： - 使用字段标记而不是新类型来区分变体 - 必要时使用 interface 来共享字段 - 考虑使用 union type 来处理多态性  **实际案例**： - 原本将 `Model` 和 `FlattenedModel` 分开定义，导致 Fragment 无法复用 - 解决方案是合并为单一的 `Model` 类型，通过查询方法的不同来返回不同的数据结构 - 保持了类型系统的简洁性，同时提高了代码的可维护性
 
 ## GraphQL 字段处理
 
@@ -52,11 +52,14 @@
 
 ## 经验教训
 
-- GraphQL query 的 skip 条件要谨慎，比如 `skip: !session || !jwt` 如果 jwt 获取不当会导致查询永远不执行。最好在 useJWT 这样的 hook 里同时检查 session 和 cookie 来源。
-- 调试 cookie 和 JWT 问题时，在修改代码前先添加详细日志，包括：
+* GraphQL query 的 skip 条件要谨慎，比如 `skip: !isAuthenticated` 如果 isAuthenticated 判断不当会导致查询永远不执行。最好在 useJWT 这样的 hook 里只检查 session 状态而不要同时要求 JWT 存在，因为用户可能通过不同方式登录。
+* 调试 cookie 和 JWT 问题时，在修改代码前先添加详细日志，包括：
   1. cookie 的原始内容和解析后的键值对
   2. JWT 在各个环节的传递过程（NextAuth session -> cookie -> Apollo client -> HTTP header）
   3. GraphQL 请求的完整 header
+* 用户ID处理需要兼容多种格式：1)后端resolver中从user对象提取ID时需要考虑多种属性(user.sub/user._key/user.id)；2)数据库查询中需要处理不同格式的createdBy字段(字符串路径如'users/123'或对象如{username:'user'})；3)前端展示时需要处理可能缺失的用户信息。
+* Apollo Client应该从多个来源获取JWT：1)NextAuth session；2)cookie；3)URL参数。这样可以支持不同的登录流程，特别是后端直接认证后重定向到前端的情况。
+* 用户对象格式不一致问题：1)后端返回的用户对象可能是{_key:'123',username:'user'}或简单的'123'字符串；2)createdBy字段可能是字符串路径'users/123'或对象{username:'user'}；3)需要在resolver和service层都做兼容处理。
 
 ## 开发重点与优先级
 * 当前以Web端核心功能为重点，包括卡片编辑管理、模板系统、基础UI组件和单用户数据流；基础架构采用Next.js+Radix UI设置，集成GraphQL，使用Jotai状态管理；UI/UX设计关注响应式布局、主题系统、交互设计和可访问性。开发顺序：基础框架搭建、核心UI组件实现、GraphQL集成、卡片编辑器开发、模板系统实现、关系管理添加、用户体验优化。
@@ -65,7 +68,19 @@
 * 暂不考虑：本地文件系统集成与云存储方案、附件预览管理、多用户权限系统、协作功能、数据隔离策略、实时同步机制、多设备同步、离线功能、用户数据迁移。特别注意：路径处理需区分Web的URL路径和Desktop的文件系统路径确保跨平台兼容；API调用在Web使用REST/GraphQL、Desktop使用IPC通信需要统一抽象层；数据同步Web端实时、Desktop端定期且需处理冲突；GraphQL相关查询需使用AuthGuard保护并通过@CurrentUser()获取用户信息，注意ArangoDB查询中绑定参数必须显式提供，使用aql标签字符串处理复杂查询，关注关系查询性能影响。
 
 ## 调试与错误处理
-* 后端调试页面（如/install、/card/full）保持简单HTML风格仅用于开发调试和状态查看。环境检测通过typeof window和process.type判断，条件导入根据环境选择具体实现。认证调试要点：检查Network中/api/auth/session返回和GraphQL请求Authorization header；检查Cookie中jwt和next-auth.session-token存在性；常见问题包括循环登录（检查JWT同步和cookie设置）、401/403（检查Authorization header格式）、Session数据不完整（检查next-auth callbacks）。JWT处理关键：useJWT必须同时处理session和cookie来源保持同步；cookie设置需要{secure:仅生产环境,sameSite:'lax',path:'/',expires:1}；Apollo Client的authLink中用js-cookie替代document.cookie解析。Card.createdBy非空但返回null说明数据库中user关联丢失，检查Card创建时的user绑定和GraphQL resolver中的关系查询。Apollo Client无限循环原因：fetchPolicy设为cache-and-network导致，改为network-only；userId处理需要从user对象中提取sub字段；ArangoDB查询中userRef格式必须为users/[userId]。
+
+* 后端调试页面（如/install、/card/full）保持简单HTML风格仅用于开发调试和状态查看。环境检测通过typeof window和process.type判断，条件导入根据环境选择具体实现。
+* 认证调试要点：检查Network中/api/auth/session返回和GraphQL请求Authorization header；检查Cookie中jwt和next-auth.session-token存在性；常见问题包括循环登录（检查JWT同步和cookie设置）、401/403（检查Authorization header格式）、Session数据不完整（检查next-auth callbacks）。
+* JWT处理关键：useJWT应该主要检查session状态而非必须要求JWT存在；cookie设置需要{secure:仅生产环境,sameSite:'lax',path:'/',expires:1}；Apollo Client的authLink中用js-cookie替代document.cookie解析；考虑从多个来源获取JWT（session/cookie/URL参数）。
+* 用户ID处理问题：
+  1. 后端resolver中从user对象提取ID时需要考虑多种属性（user.sub/user._key/user.id/user._id）
+  2. 数据库查询中需要处理不同格式的createdBy字段（字符串路径如'users/123'或对象如{username:'user'}）
+  3. ArangoDB查询中需要使用更灵活的查询条件，如`FILTER card.createdBy == @userRef || (IS_OBJECT(card.createdBy) && card.createdBy.username == @username)`
+  4. Card.createdBy非空但返回null说明数据库中user关联丢失，检查Card创建时的user绑定和GraphQL resolver中的关系查询
+* Apollo Client相关问题：
+  1. 无限循环原因：fetchPolicy设为cache-and-network导致，改为network-only
+  2. 查询跳过原因：skip条件过于严格，如`skip: !isAuthenticated && !jwt`改为只检查session状态
+  3. 认证失败原因：authorization header不正确或缺失，确保JWT正确传递
 
 ## GraphQL 错误处理
 

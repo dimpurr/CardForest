@@ -22,7 +22,25 @@ export class CardResolver {
   @UseGuards(AuthGuard)
   async getMyCards(@CurrentUser() user: any) {
     console.log('Getting cards for user:', user);
-    const userId = typeof user === 'object' ? user.sub : user;
+
+    // 处理不同格式的用户对象
+    let userId: string;
+
+    if (typeof user === 'object') {
+      // 如果是对象，尝试从不同属性中获取 ID
+      userId = user.sub || user._key || user.id || user._id;
+      console.log('Extracted userId from object:', userId);
+    } else {
+      // 如果是字符串，直接使用
+      userId = user;
+      console.log('Using userId directly:', userId);
+    }
+
+    if (!userId) {
+      console.error('Could not determine userId from user object:', user);
+      throw new Error('Invalid user ID');
+    }
+
     return this.cardService.getMyCards(userId);
   }
 
@@ -37,6 +55,24 @@ export class CardResolver {
     @Args('input') input: any,
     @CurrentUser() user: any,
   ) {
+    // 处理不同格式的用户对象
+    let userId: string;
+
+    if (typeof user === 'object') {
+      // 如果是对象，尝试从不同属性中获取 ID
+      userId = user.sub || user._key || user.id || user._id;
+      // 创建一个新的用户对象，包含所需的属性
+      user = {
+        ...user,
+        sub: userId,
+        username: user.username || user.name || user.login || userId
+      };
+    }
+
+    if (!userId) {
+      throw new Error('Invalid user ID');
+    }
+
     return this.cardService.createCard(input, user);
   }
 
@@ -47,7 +83,21 @@ export class CardResolver {
     @Args('input') input: any,
     @CurrentUser() user: any,
   ) {
-    const userId = typeof user === 'object' ? user.sub : user;
+    // 处理不同格式的用户对象
+    let userId: string;
+
+    if (typeof user === 'object') {
+      // 如果是对象，尝试从不同属性中获取 ID
+      userId = user.sub || user._key || user.id || user._id;
+    } else {
+      // 如果是字符串，直接使用
+      userId = user;
+    }
+
+    if (!userId) {
+      throw new Error('Invalid user ID');
+    }
+
     return this.cardService.updateCard(id, userId, input);
   }
 
@@ -57,7 +107,21 @@ export class CardResolver {
     @Args('id') id: string,
     @CurrentUser() user: any,
   ) {
-    const userId = typeof user === 'object' ? user.sub : user;
+    // 处理不同格式的用户对象
+    let userId: string;
+
+    if (typeof user === 'object') {
+      // 如果是对象，尝试从不同属性中获取 ID
+      userId = user.sub || user._key || user.id || user._id;
+    } else {
+      // 如果是字符串，直接使用
+      userId = user;
+    }
+
+    if (!userId) {
+      throw new Error('Invalid user ID');
+    }
+
     return this.cardService.deleteCard(id, userId);
   }
 
@@ -68,7 +132,21 @@ export class CardResolver {
     @Args('toCardId') toCardId: string,
     @CurrentUser() user: any,
   ) {
-    const userId = typeof user === 'object' ? user.sub : user;
+    // 处理不同格式的用户对象
+    let userId: string;
+
+    if (typeof user === 'object') {
+      // 如果是对象，尝试从不同属性中获取 ID
+      userId = user.sub || user._key || user.id || user._id;
+    } else {
+      // 如果是字符串，直接使用
+      userId = user;
+    }
+
+    if (!userId) {
+      throw new Error('Invalid user ID');
+    }
+
     await this.cardService.createRelation(fromCardId, toCardId, userId);
     return true;
   }

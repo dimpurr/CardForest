@@ -77,19 +77,45 @@ export class CardService {
       await this.modelService.validateCardData(model, cardData);
 
       const now = new Date().toISOString();
+
+      // 处理不同格式的用户对象
+      let userId: string;
+      if (typeof user === 'object') {
+        userId = user.sub || user._key || user.id || user._id;
+      } else {
+        userId = user;
+      }
+
+      if (!userId) {
+        throw new Error('Invalid user ID');
+      }
+
       const cardDoc = {
         modelId: input.modelId,
         title: input.title,
         content: input.content || '',
         body: input.body || '',
         meta: input.meta || {},
-        createdBy: `users/${user.sub}`,
+        createdBy: `users/${userId}`,
         createdAt: now,
         updatedAt: now,
       };
 
       const card = await cardsCollection.save(cardDoc);
       this.logger.log('Card created successfully:', JSON.stringify(card, null, 2));
+
+      // 处理用户信息
+      let username: string;
+      let provider: string | undefined;
+      let providerId: string | undefined;
+
+      if (typeof user === 'object') {
+        username = user.username || user.name || user.login || user.email || userId;
+        provider = user.provider;
+        providerId = user.providerId;
+      } else {
+        username = userId;
+      }
 
       // Return the complete card with all required fields
       return {
@@ -98,11 +124,11 @@ export class CardService {
         _rev: card._rev,
         ...cardDoc,
         createdBy: {
-          _id: `users/${user.sub}`,
-          _key: user.sub,
-          username: user.name || user.email || user.sub,
-          provider: user.provider,
-          providerId: user.providerId
+          _id: `users/${userId}`,
+          _key: userId,
+          username: username,
+          provider: provider,
+          providerId: providerId
         }
       };
     } catch (error) {
