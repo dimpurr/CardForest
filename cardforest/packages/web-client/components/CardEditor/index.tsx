@@ -7,7 +7,8 @@ import { Textarea } from '../ui/Textarea';
 import { Alert } from '../ui/Alert';
 import { DatePicker } from '../ui/DatePicker';
 import { MetaField } from './MetaField';
-import { cardEditorAtom, cardModelAtom, type CardEditorData } from '../../stores/cardEditor';
+import { cardEditorAtom, modelEditorAtom, type CardEditorData } from '@/atoms/cardAtoms';
+import { Model } from '@/atoms/modelAtoms';
 
 interface CardEditorProps {
   modelId: string;
@@ -17,7 +18,7 @@ interface CardEditorProps {
 
 export function CardEditor({ modelId, initialData, onChange }: CardEditorProps) {
   const [formData, setFormData] = useAtom(cardEditorAtom);
-  const [model, setModel] = useAtom(cardModelAtom);
+  const [model, setModel] = useAtom(modelEditorAtom);
 
   useEffect(() => {
     if (initialData) {

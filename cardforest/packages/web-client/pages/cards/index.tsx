@@ -7,7 +7,7 @@ import { CreateCard } from '@/components/CreateCard';
 import { useCallback, useEffect } from 'react';
 import { useJWT } from '@/hooks/useJWT';
 import { useAtom } from 'jotai';
-import { cardsAtom, sortedCardsAtom } from '@/store/cards';
+import { cardsAtom, sortedCardsAtom } from '@/atoms/cardAtoms';
 import { Layout } from '@/components/Layout';
 import { GET_MY_CARDS } from '@/graphql/queries/cardQueries';
 
