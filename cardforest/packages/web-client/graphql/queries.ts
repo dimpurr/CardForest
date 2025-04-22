@@ -4,9 +4,26 @@ export const GET_MY_CARDS = gql`
   query GetMyCards {
     myCards {
       _id
+      modelId
       title
       content
+      body
+      meta
       createdAt
+      updatedAt
+      model {
+        _id
+        name
+        fields {
+          _inherit_from
+          fields {
+            name
+            type
+            required
+            default
+          }
+        }
+      }
       createdBy {
         username
       }

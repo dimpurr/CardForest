@@ -18,12 +18,15 @@ export const authOptions: AuthOptions = {
       clientSecret: process.env.GITHUB_SECRET!,
     }),
   ],
+  pages: {
+    signIn: '/auth/signin',
+  },
   session: {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   callbacks: {
-    async signIn({ user, account, profile, email, credentials }) {
+    async signIn({ user, account, profile }) {
       console.log('Auth.js signIn callback:', {
         hasUser: !!user,
         hasAccount: !!account,
@@ -45,7 +48,7 @@ export const authOptions: AuthOptions = {
     },
 
     async jwt({ token, account, profile, trigger }) {
-      console.log('Auth.js JWT callback:', { 
+      console.log('Auth.js JWT callback:', {
         trigger,
         hasToken: !!token,
         hasAccount: !!account,
@@ -64,41 +67,54 @@ export const authOptions: AuthOptions = {
       if (account?.access_token || trigger === 'signIn') {
         console.log('Initial login or token refresh detected, fetching JWT...')
         try {
-          const response = await fetch(`${BACKEND_URL}/user/auth/github/callback`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              access_token: account?.access_token,
-              provider: 'github',
-              providerId: (profile as any).id || (profile as any).sub,
-              profile: {
-                sub: (profile as any).sub,
-                id: (profile as any).id,
-                login: (profile as any).login,
-                email: (profile as any).email
-              }
-            }),
+          // 先尝试直接使用 GitHub OAuth 登录后端
+          // 这里不能使用重定向，因为这是服务器端代码
+          // 我们将在前端添加一个登录按钮
+
+          // 如果上面的方法不起作用，则尝试从 cookie 中获取 JWT
+          const cookies = await fetch(`${BACKEND_URL}/user/auth/auth-callback-backend`, {
+            method: 'GET',
+            credentials: 'include',
           })
 
-          if (!response.ok) {
-            console.error('Failed to fetch JWT:', response.status, response.statusText)
-            throw new Error('Failed to fetch JWT')
-          }
+          // 如果没有 cookie，则使用 POST 请求获取 JWT
+          if (!cookies.ok) {
+            const response = await fetch(`${BACKEND_URL}/user/auth/github/callback`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                access_token: account?.access_token,
+                provider: 'github',
+                providerId: (profile as any).id || (profile as any).sub,
+                profile: {
+                  sub: (profile as any).sub,
+                  id: (profile as any).id,
+                  login: (profile as any).login,
+                  email: (profile as any).email
+                }
+              }),
+            })
 
-          const data = await response.json()
-          console.log('Backend JWT response:', { 
-            hasJwt: !!data.jwt,
-            jwtPreview: data.jwt ? `${data.jwt.slice(0, 10)}...` : null
-          })
+            if (!response.ok) {
+              console.error('Failed to fetch JWT:', response.status, response.statusText)
+              throw new Error('Failed to fetch JWT')
+            }
 
-          // 将 JWT 存储在 token 中
-          token.backendJwt = data.jwt
-          
-          // 同时设置 cookie 以便 Apollo Client 使用
-          const cookies = new Headers(response.headers).get('set-cookie')
-          if (cookies) {
-            console.log('Setting cookies from backend')
-            // 这里不需要手动设置，因为 fetch 会自动处理 set-cookie 头
+            const data = await response.json()
+            console.log('Backend JWT response:', {
+              hasJwt: !!data.jwt,
+              jwtPreview: data.jwt ? `${data.jwt.slice(0, 10)}...` : null
+            })
+
+            // 将 JWT 存储在 token 中
+            token.backendJwt = data.jwt
+
+            // 同时设置 cookie 以便 Apollo Client 使用
+            const cookies = new Headers(response.headers).get('set-cookie')
+            if (cookies) {
+              console.log('Setting cookies from backend')
+              // 这里不需要手动设置，因为 fetch 会自动处理 set-cookie 头
+            }
           }
         } catch (error) {
           console.error('Error fetching JWT:', error)
@@ -127,13 +143,13 @@ export const authOptions: AuthOptions = {
   },
   debug: true,
   logger: {
-    error(code, ...message) {
+    error(code: string, ...message: any[]) {
       console.error('Auth.js Error:', { code, message })
     },
-    warn(code, ...message) {
+    warn(code: string, ...message: any[]) {
       console.warn('Auth.js Warning:', { code, message })
     },
-    debug(code, ...message) {
+    debug(code: string, ...message: any[]) {
       console.log('Auth.js Debug:', { code, message })
     }
   }

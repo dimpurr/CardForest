@@ -2,7 +2,7 @@ import { useRouter } from 'next/router';
 import { useQuery } from '@apollo/client';
 import { GET_MODEL_WITH_INHERITANCE } from '@/graphql/queries/modelQueries';
 import { CardEditor } from '@/components/card/CardEditor';
-import { Alert } from '@/components/ui/alert';
+import { Alert } from '@/components/ui/Alert';
 import { getModelFullId } from '@/utils/modelUtils';
 import { Layout } from '@/components/Layout';
 import { DebugPanel } from '@/components/debug/DebugPanel';

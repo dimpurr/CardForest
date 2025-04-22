@@ -31,8 +31,60 @@ export class AuthController {
     // Passport 自动处理 GitHub 登录流程
   }
 
+  @Get('github/callback')
+  @UseGuards(AuthGuard('github'))
+  githubAuthCallbackGet(@Req() req: Request, @Res() res: Response) {
+    this.logger.log('GitHub callback received');
+
+    // 生成 JWT token
+    const user = req.user as any;
+    // 确保我们有所需的属性
+    console.log('User from GitHub strategy:', user);
+
+    // 处理可能的用户对象结构
+    let sub = 'unknown';
+    let username = 'unknown';
+
+    if (user) {
+      if (user._key) {
+        sub = user._key;
+      } else if (user.id) {
+        sub = user.id;
+      } else if (user._id) {
+        sub = user._id.split('/')[1];
+      }
+
+      if (user.username) {
+        username = user.username;
+      } else if (user.login) {
+        username = user.login;
+      } else if (user.name) {
+        username = user.name;
+      }
+    }
+
+    console.log('Generated JWT payload:', { sub, username });
+    const token = this.jwtService.sign({ sub, username });
+
+    // 设置 cookie
+    res.cookie('jwt', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    });
+
+    // 重定向到前端
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+    // 将用户重定向到前端的卡片页面
+    // 并添加 debug 参数以显示调试信息
+    res.redirect(`${frontendUrl}/cards?debug=true&auth=backend&token=${encodeURIComponent(token)}`);
+  }
+
   @Post('github/callback')
-  async githubAuthCallback(@Body() data: any) {
+  async githubAuthCallbackPost(@Body() data: any) {
     this.logger.log('Received OAuth callback:', {
       provider: data.provider,
       hasAccessToken: !!data.access_token,

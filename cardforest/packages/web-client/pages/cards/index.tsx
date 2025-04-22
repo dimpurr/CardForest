@@ -14,9 +14,26 @@ const GET_MY_CARDS = gql`
   query GetMyCards {
     myCards {
       _id
+      modelId
       title
       content
+      body
+      meta
       createdAt
+      updatedAt
+      model {
+        _id
+        name
+        fields {
+          _inherit_from
+          fields {
+            name
+            type
+            required
+            default
+          }
+        }
+      }
       createdBy {
         username
       }
@@ -29,14 +46,14 @@ export default function CardsPage() {
   const { jwt, isAuthenticated, status: jwtStatus } = useJWT();
   const [, setCards] = useAtom(cardsAtom);
   const [sortedCards] = useAtom(sortedCardsAtom);
-  
-  console.log('Auth State:', { 
-    session: !!session, 
+
+  console.log('Auth State:', {
+    session: !!session,
     jwt: !!jwt,
     sessionStatus,
-    jwtStatus 
+    jwtStatus
   });
-  
+
   const { loading, error, data } = useQuery(GET_MY_CARDS, {
     skip: !isAuthenticated,
     onCompleted: (data) => {
@@ -60,13 +77,13 @@ export default function CardsPage() {
   }, [setCards]);
 
   useEffect(() => {
-    console.log('Effect triggered:', { 
-      hasSession: !!session, 
+    console.log('Effect triggered:', {
+      hasSession: !!session,
       hasJwt: !!jwt,
       sessionStatus,
       jwtStatus
     });
-    
+
     if (!session || !jwt) {
       console.log('Clearing cards...');
       setCards([]);
@@ -108,21 +125,37 @@ export default function CardsPage() {
     );
   }
 
+  // 如果没有登录，显示登录选项
   if (!session) {
     return (
       <Layout>
         <div className="p-6">
-          <Alert variant="error">
-            <Alert.Title>Authentication Required</Alert.Title>
-            <Alert.Description>
-              Please sign in to view your cards.
-            </Alert.Description>
-            <div className="mt-4">
+          <h1 className="text-2xl font-bold mb-6">CardForest Login</h1>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="p-6 border rounded-lg shadow-sm">
+              <h2 className="text-xl font-semibold mb-4">Frontend Login</h2>
+              <p className="mb-4 text-gray-600">
+                Use NextAuth to authenticate with GitHub. This is the recommended method.
+              </p>
               <Button variant="primary" onClick={() => signIn('github')}>
-                Sign in with GitHub
+                Sign in with GitHub (Frontend)
               </Button>
             </div>
-          </Alert>
+
+            <div className="p-6 border rounded-lg shadow-sm">
+              <h2 className="text-xl font-semibold mb-4">Backend Login</h2>
+              <p className="mb-4 text-gray-600">
+                Authenticate directly with the backend server. Use this if frontend login doesn't work.
+              </p>
+              <a
+                href="http://localhost:3030/user/auth/github"
+                className="inline-block px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600"
+              >
+                Sign in with GitHub (Backend)
+              </a>
+            </div>
+          </div>
         </div>
       </Layout>
     );
@@ -138,6 +171,21 @@ export default function CardsPage() {
               Sign out
             </Button>
           </div>
+
+          {/* Debug section - only shown when URL has ?debug=true */}
+          {typeof window !== 'undefined' && window.location.search.includes('debug=true') && (
+            <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded mb-6">
+              <h2 className="text-lg font-semibold mb-2">Debug Info</h2>
+              <div className="text-sm">
+                <p>Session: {session ? 'Yes' : 'No'}</p>
+                <p>JWT: {jwt ? 'Yes' : 'No'}</p>
+                <p>Auth Status: {isAuthenticated ? 'Authenticated' : 'Not Authenticated'}</p>
+                <p>Session Status: {sessionStatus}</p>
+                <p>JWT Status: {jwtStatus}</p>
+                <p>Backend JWT: {session?.backendJwt ? session.backendJwt.substring(0, 20) + '...' : 'None'}</p>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-4">
             <div className="flex justify-between items-center">

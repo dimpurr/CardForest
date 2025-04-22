@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router';
 import { useQuery } from '@apollo/client';
 import { Layout } from '@/components/Layout';
-import { Alert } from '@/components/ui/alert';
+import { Alert } from '@/components/ui/Alert';
 import { GET_CARD } from '@/graphql/queries/cardQueries';
 import { CardEditor } from '@/components/card/CardEditor';
 

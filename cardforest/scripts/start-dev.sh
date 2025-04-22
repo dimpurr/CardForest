@@ -11,6 +11,10 @@ sleep 3
 # 创建退出脚本
 cat > /tmp/cardforest-exit.sh << 'EOF'
 #!/bin/bash
+echo "ArrangoDB: http://localhost:8529"
+echo "Backend: http://localhost:3030"
+echo "Frontend: http://localhost:3000"
+echo "Documentation: http://localhost:8080"
 echo "按 0 退出所有服务"
 while true; do
     read -n 1 key

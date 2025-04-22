@@ -14,6 +14,19 @@ export const CREATE_CARD = gql`
       createdBy {
         username
       }
+      model {
+        _id
+        name
+        fields {
+          _inherit_from
+          fields {
+            name
+            type
+            required
+            default
+          }
+        }
+      }
     }
   }
 `;
@@ -31,6 +44,19 @@ export const UPDATE_CARD = gql`
       updatedAt
       createdBy {
         username
+      }
+      model {
+        _id
+        name
+        fields {
+          _inherit_from
+          fields {
+            name
+            type
+            required
+            default
+          }
+        }
       }
     }
   }

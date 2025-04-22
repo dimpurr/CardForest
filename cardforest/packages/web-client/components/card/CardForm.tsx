@@ -1,7 +1,7 @@
 import { useForm, FormProvider } from 'react-hook-form';
 import { Model, FieldDefinition } from '@/types/model';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/Input';
+import { Textarea } from '@/components/ui/Textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { TiptapEditor } from '@/components/ui/TiptapEditor';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';

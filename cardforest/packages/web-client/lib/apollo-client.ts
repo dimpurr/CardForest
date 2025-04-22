@@ -10,22 +10,43 @@ const httpLink = createHttpLink({
 })
 
 const authLink = setContext(async (operation, { headers }) => {
-  console.log('Apollo authLink setup:', { 
+  console.log('Apollo authLink setup:', {
     operation: operation.operationName,
     hasHeaders: !!headers
   });
 
-  // 从 session 中获取 JWT
+  // 从多个来源获取 JWT
+  // 1. 从 session 中获取
   const session = await getSession()
-  const jwt = session?.backendJwt
-  
+  let jwt = session?.backendJwt
+
+  // 2. 如果 session 中没有，尝试从 cookie 中获取
+  if (!jwt && typeof window !== 'undefined') {
+    jwt = Cookies.get('jwt')
+    console.log('Got JWT from cookie:', !!jwt)
+
+    // 3. 如果 cookie 中没有，尝试从 URL 参数中获取
+    if (!jwt) {
+      const urlParams = new URLSearchParams(window.location.search)
+      const tokenParam = urlParams.get('token')
+      if (tokenParam) {
+        jwt = decodeURIComponent(tokenParam)
+        console.log('Got JWT from URL parameter:', !!jwt)
+
+        // 将 JWT 存入 cookie 以便于后续使用
+        Cookies.set('jwt', jwt, { expires: 1 }) // 1 day
+      }
+    }
+  }
+
   console.log('Apollo authLink JWT:', {
     hasJwt: !!jwt,
     jwtPreview: jwt ? `${jwt.slice(0, 10)}...` : null,
     headers: headers ? Object.keys(headers) : []
   })
 
-  // Return headers with Bearer token if JWT exists
+  // 始终包含授权头，即使没有 JWT
+  // 如果没有 JWT，使用空字符串，这样服务器会尝试使用 cookie 进行身份验证
   const updatedHeaders = {
     ...headers,
     authorization: jwt ? `Bearer ${jwt}` : '',

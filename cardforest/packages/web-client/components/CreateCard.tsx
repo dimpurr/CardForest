@@ -4,7 +4,7 @@ import { useQuery } from '@apollo/client';
 import { GET_MODELS } from '@/graphql/queries/modelQueries';
 import { ModelCard } from '@/components/model/ModelCard';
 import { Button } from '@/components/ui/Button';
-import { Alert } from '@/components/ui/alert';
+import { Alert } from '@/components/ui/Alert';
 import { getModelId } from '@/utils/modelUtils';
 
 export function CreateCard({ onCardCreated }: { onCardCreated?: () => void }) {

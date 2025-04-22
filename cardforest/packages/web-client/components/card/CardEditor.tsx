@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Model } from '@/types/model';
 import { DebugPanel } from '@/components/debug/DebugPanel';
 import { useState } from 'react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert } from '@/components/ui/Alert';
 import toast from 'react-hot-toast';
 
 interface CardEditorProps {
@@ -139,8 +139,8 @@ export function CardEditor({
       </div>
 
       {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
+        <Alert variant="error">
+          <Alert.Description>{error}</Alert.Description>
         </Alert>
       )}
 
@@ -164,7 +164,7 @@ export function CardEditor({
       />
 
       <div className="flex justify-end gap-4">
-        <Button variant="outline" onClick={handleCancel}>
+        <Button variant="secondary" onClick={handleCancel}>
           Cancel
         </Button>
         <Button

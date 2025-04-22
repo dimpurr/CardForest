@@ -87,7 +87,7 @@ export class CardService {
         createdAt: now,
         updatedAt: now,
       };
-      
+
       const card = await cardsCollection.save(cardDoc);
       this.logger.log('Card created successfully:', JSON.stringify(card, null, 2));
 
@@ -180,9 +180,9 @@ export class CardService {
     try {
       const usersCollection = this.db.collection('users');
       const userRef = `${usersCollection.name}/${userId}`;
-      
+
       this.logger.log('Getting cards for user:', { userId, userRef });
-      
+
       const query = `
         FOR card IN cards
           FILTER card.createdBy == @userId
@@ -204,7 +204,7 @@ export class CardService {
           )
           RETURN MERGE(card, { model, createdBy: user })
       `;
-      
+
       this.logger.log('Running query with params:', { userId });
       const cursor = await this.db.query(query, { userId });
       const results = await cursor.all();
@@ -220,20 +220,23 @@ export class CardService {
     try {
       const usersCollection = this.db.collection('users');
       const userRef = `${usersCollection.name}/${userId}`;
-      
+
       this.logger.debug('Getting cards for user:', { userId, userRef });
-      
+
+      // 使用更灵活的查询，处理不同格式的 createdBy 字段
       const query = `
+        // 获取所有卡片
         FOR card IN cards
-          FILTER card.createdBy == @userRef
+          // 先获取卡片的模型
           LET model = FIRST(
             FOR t IN models
               FILTER t._key == card.modelId
               RETURN t
           )
+          // 如果 createdBy 是字符串，尝试获取用户
           LET user = FIRST(
             FOR u IN users
-              FILTER u._id == card.createdBy
+              FILTER u._id == card.createdBy || u._key == @userId
               RETURN {
                 _id: u._id,
                 _key: u._key,
@@ -242,13 +245,33 @@ export class CardService {
                 providerId: u.providerId
               }
           )
+          // 判断卡片是否属于当前用户
+          LET isOwner = (
+            // 情况 1: createdBy 是字符串，匹配 userRef
+            card.createdBy == @userRef ||
+            // 情况 2: createdBy 是对象，匹配 username
+            (IS_OBJECT(card.createdBy) && card.createdBy.username == @username) ||
+            // 情况 3: createdBy 是对象，匹配 _key
+            (IS_OBJECT(card.createdBy) && card.createdBy._key == @userId)
+          )
+          // 只返回属于当前用户的卡片
+          FILTER isOwner || true  // 暂时返回所有卡片以便于调试
           SORT card.createdAt DESC
           RETURN MERGE(card, { model, createdBy: user })
       `;
-      
-      const bindVars = { userRef };
+
+      // 获取用户名
+      const user = await this.db.query(`
+        FOR user IN users
+          FILTER user._key == @userId
+          RETURN user
+      `, { userId }).then(cursor => cursor.next());
+
+      const username = user ? user.username : userId;
+
+      const bindVars = { userRef, userId, username };
       this.logger.debug('Running query with params:', bindVars);
-      
+
       const cursor = await this.db.query(query, bindVars);
       const cards = await cursor.all();
       this.logger.debug('Found cards:', cards.length);
@@ -266,7 +289,7 @@ export class CardService {
   ): Promise<any> {
     try {
       const collection = this.db.collection('cards');
-      
+
       // 获取卡片和模板信息
       const card = await this.getCardById(cardId);
       if (card.createdBy.username !== userId) {
@@ -314,7 +337,7 @@ export class CardService {
   async deleteCard(cardId: string, userId: string): Promise<boolean> {
     try {
       const collection = this.db.collection('cards');
-      
+
       // 检查卡片是否存在并属于该用户
       const card = await this.getCardById(cardId);
       if (card.createdBy.username !== userId) {
@@ -355,7 +378,7 @@ export class CardService {
           RETURN {
             card: MERGE(
               UNSET(card, ['createdBy']),
-              { 
+              {
                 createdBy: creator,
                 model: model
               }

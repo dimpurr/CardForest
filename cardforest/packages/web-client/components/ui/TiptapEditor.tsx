@@ -20,6 +20,7 @@ export function TiptapEditor({
   const editor = useEditor({
     extensions: [StarterKit],
     content: value,
+    immediatelyRender: false, // Fix for SSR hydration mismatch
     onUpdate: ({ editor }) => {
       onChange?.(editor.getHTML())
     },

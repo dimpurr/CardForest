@@ -14,6 +14,19 @@ export const GET_CARD = gql`
       createdBy {
         username
       }
+      model {
+        _id
+        name
+        fields {
+          _inherit_from
+          fields {
+            name
+            type
+            required
+            default
+          }
+        }
+      }
     }
   }
 `;
@@ -64,7 +77,15 @@ export const GET_MY_CARDS = gql`
       model {
         _id
         name
-        fields
+        fields {
+          _inherit_from
+          fields {
+            name
+            type
+            required
+            default
+          }
+        }
       }
       createdBy {
         username
