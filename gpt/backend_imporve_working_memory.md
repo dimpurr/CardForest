@@ -23,17 +23,17 @@ CardForest 是一个面向对象的卡片系统，旨在结合 Notion 的结构�
 
 ### 第一阶段：数据访问层重构
 
-- [ ] **1.1 创建统一的仓库模式**
-  - [ ] 实现基础仓库类 `BaseRepository<T>`：包含构造函数接收 Database 和 collectionName；实现 findById/findAll/create/update/delete 等基础方法；使用 aql 模板字符串构建查询；添加适当的类型注解确保类型安全
-  - [ ] 实现 UserRepository：继承 BaseRepository<User>；添加 findByUsername/findByOAuthId 等特定方法；使用 @Injectable() 装饰器使其可注入
-  - [ ] 实现 CardRepository：继承 BaseRepository<Card>；添加 findByCreator/findWithRelations 等特定方法；处理卡片关系查询
-  - [ ] 实现 ModelRepository：继承 BaseRepository<Model>；添加 findWithInheritance 等特定方法；处理模板继承关系
-  - [ ] 在服务中注入并使用仓库：将直接的数据库访问替换为仓库方法调用；使用构造函数注入仓库实例
+- [x] **1.1 创建统一的仓库模式**
+  - [x] 实现基础仓库类 `BaseRepository<T>`：包含构造函数接收 Database 和 collectionName；实现 findById/findAll/create/update/delete 等基础方法；使用 aql 模板字符串构建查询；添加适当的类型注解确保类型安全
+  - [x] 实现 UserRepository：继承 BaseRepository<User>；添加 findByUsername/findByOAuthId 等特定方法；使用 @Injectable() 装饰器使其可注入
+  - [x] 实现 CardRepository：继承 BaseRepository<Card>；添加 findByCreator/findWithRelations 等特定方法；处理卡片关系查询
+  - [x] 实现 ModelRepository：继承 BaseRepository<Model>；添加 findWithInheritance 等特定方法；处理模板继承关系
+  - [x] 在服务中注入并使用仓库：将直接的数据库访问替换为仓库方法调用；使用构造函数注入仓库实例
 
-- [ ] **1.2 统一 AQL 查询构建**
-  - [ ] 使用 arangojs 提供的 `aql` 模板字符串替换原始字符串查询：将所有字符串拼接的查询替换为 aql模板；确保参数作为变量传入而非字符串拼接；使用 ${} 语法插入参数
-  - [ ] 创建常用查询工具函数：实现 createPaginatedQuery 函数支持分页（包含 offset/limit）；实现 createSortedQuery 函数支持排序（包含升序/降序）；实现 createFilteredQuery 函数支持复杂过滤条件
-  - [ ] 使用类型安全的查询构建：确保查询函数返回 aql.Query 类型；使用泛型参数指定返回类型；在查询函数中添加适当的类型注解
+- [x] **1.2 统一 AQL 查询构建**
+  - [x] 使用 arangojs 提供的 `aql` 模板字符串替换原始字符串查询：将所有字符串拼接的查询替换为 aql模板；确保参数作为变量传入而非字符串拼接；使用 ${} 语法插入参数
+  - [x] 创建常用查询工具函数：实现 createPaginatedQuery 函数支持分页（包含 offset/limit）；实现 createSortedQuery 函数支持排序（包含升序/降序）；实现 createFilteredQuery 函数支持复杂过滤条件
+  - [x] 使用类型安全的查询构建：确保查询函数返回 aql.Query 类型；使用泛型参数指定返回类型；在查询函数中添加适当的类型注解
 
 ### 第二阶段：错误处理与日志统一
 

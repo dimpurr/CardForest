@@ -29,6 +29,9 @@
 ## 数据模型与API设计
 * API命名规范：使用my前缀表示当前用户相关查询如myCards而非userCards，使用full后缀表示包含完整关联数据的查询如card/full，需保持命名一致性避免同一概念使用不同名称。模板系统支持从基础模板到特化模板的继承关系，字段定义包含验证规则和UI展示信息，自动处理系统字段。卡片系统包含title/content/body基础字段，使用meta字段存储模板特定数据，通过relations集合管理父子关系。数据关联使用_key而非完整_id路径，GraphQL查询需要通过AQL JOIN获取完整关联对象。
 
+## 数据访问层
+* 仓库模式实现：使用BaseRepository<T>基础类实现通用CRUD操作，包含findById/findAll/create/update/delete方法。特定仓库类（UserRepository/CardRepository/ModelRepository）继承基础类并添加特定方法。使用@Injectable()装饰器使仓库可注入到服务中。所有AQL查询使用aql模板字符串而非原始字符串拼接，确保参数作为变量传入。实现createPaginatedQuery/createSortedQuery等工具函数简化复杂查询构建。所有仓库类通过RepositoryModule注册并导出。
+
 ## 模板系统
 
 * 模板字段使用FieldGroup分组，支持继承链，使用inherits_from数组存储父模板ID。字段验证在ModelService.validateFields中处理，使用isValidFieldType检查类型。模板编辑器需要同时支持字段编辑和继承管理，使用Jotai atom管理模板状态避免prop drilling。模板列表需要展示继承关系，可以用树形结构或者标签形式。字段覆盖时需要保留原字段信息便于还原。前端使用GraphQL fragments优化模板查询，使用useModel hook封装模板操作逻辑。模板预览需要考虑继承字段的显示方式，可以用不同颜色或图标区分来源。
