@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useAuth } from '@/contexts/AuthContext';
+import { navItems, routes } from '@/config/routes';
 
 export function Navigation() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -17,26 +18,20 @@ export function Navigation() {
               </Link>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              <Link
-                href="/cards"
-                className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                  router.pathname.startsWith('/cards')
-                    ? 'border-blue-500 text-gray-900 dark:text-white'
-                    : 'border-transparent text-gray-500 dark:text-gray-300 hover:border-gray-300 hover:text-gray-700 dark:hover:text-gray-200'
-                }`}
-              >
-                Cards
-              </Link>
-              <Link
-                href="/models"
-                className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                  router.pathname.startsWith('/models')
-                    ? 'border-blue-500 text-gray-900 dark:text-white'
-                    : 'border-transparent text-gray-500 dark:text-gray-300 hover:border-gray-300 hover:text-gray-700 dark:hover:text-gray-200'
-                }`}
-              >
-                Models
-              </Link>
+              {navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                    (item.href === '/' && router.pathname === '/') ||
+                    (item.href !== '/' && router.pathname.startsWith(item.href))
+                      ? 'border-blue-500 text-gray-900 dark:text-white'
+                      : 'border-transparent text-gray-500 dark:text-gray-300 hover:border-gray-300 hover:text-gray-700 dark:hover:text-gray-200'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))}
             </div>
           </div>
           <div className="hidden sm:ml-6 sm:flex sm:items-center">
@@ -65,26 +60,20 @@ export function Navigation() {
       {/* Mobile menu */}
       <div className="sm:hidden">
         <div className="pt-2 pb-3 space-y-1">
-          <Link
-            href="/cards"
-            className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
-              router.pathname.startsWith('/cards')
-                ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-900 dark:text-blue-200'
-                : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-gray-700'
-            }`}
-          >
-            Cards
-          </Link>
-          <Link
-            href="/models"
-            className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
-              router.pathname.startsWith('/models')
-                ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-900 dark:text-blue-200'
-                : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-gray-700'
-            }`}
-          >
-            Models
-          </Link>
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
+                (item.href === '/' && router.pathname === '/') ||
+                (item.href !== '/' && router.pathname.startsWith(item.href))
+                  ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-900 dark:text-blue-200'
+                  : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-gray-700'
+              }`}
+            >
+              {item.label}
+            </Link>
+          ))}
         </div>
         {isAuthenticated && (
           <div className="pt-4 pb-3 border-t border-gray-200 dark:border-gray-700">

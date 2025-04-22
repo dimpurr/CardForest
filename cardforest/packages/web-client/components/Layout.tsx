@@ -1,7 +1,9 @@
 import { ReactNode } from 'react';
+import { useRouter } from 'next/router';
 import { Navigation } from './Navigation';
 import { Breadcrumb } from './ui/Breadcrumb';
 import Head from 'next/head';
+import { getBreadcrumbs } from '@/config/routes';
 
 interface LayoutProps {
   children: ReactNode;
@@ -11,8 +13,12 @@ interface LayoutProps {
 }
 
 export function Layout({ children, title, description, breadcrumbs }: LayoutProps) {
+  const router = useRouter();
   const pageTitle = title ? `${title} | CardForest` : 'CardForest';
   const pageDescription = description || 'Your personal knowledge garden';
+
+  // 如果没有提供面包屑，则根据当前路径生成
+  const currentBreadcrumbs = breadcrumbs || getBreadcrumbs(router.pathname);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -23,9 +29,9 @@ export function Layout({ children, title, description, breadcrumbs }: LayoutProp
       </Head>
       <Navigation />
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {breadcrumbs && breadcrumbs.length > 0 && (
+        {currentBreadcrumbs && currentBreadcrumbs.length > 0 && (
           <div className="mb-4">
-            <Breadcrumb items={breadcrumbs} />
+            <Breadcrumb items={currentBreadcrumbs} />
           </div>
         )}
         {title && (

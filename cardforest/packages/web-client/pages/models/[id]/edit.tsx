@@ -1,11 +1,11 @@
 import { useRouter } from 'next/router';
 import { useQuery } from '@apollo/client';
 import { Layout } from '@/components/Layout';
-import { Alert } from '@/components/ui/Alert';
 import { GET_MODEL_WITH_INHERITANCE } from '@/graphql/queries/modelQueries';
 import { ModelEditor } from '@/components/model/ModelEditor';
+import { withAuth } from '@/components/auth';
 
-export default function EditModelPage() {
+function EditModelPage() {
   const router = useRouter();
   const { id } = router.query;
 
@@ -16,24 +16,15 @@ export default function EditModelPage() {
 
   if (loading) {
     return (
-      <Layout>
-        <div className="p-6">
-          <Alert>
-            <Alert.Description>Loading model...</Alert.Description>
-          </Alert>
-        </div>
-      </Layout>
-    );
-  }
-
-  if (error) {
-    return (
-      <Layout>
-        <div className="p-6">
-          <Alert variant="error">
-            <Alert.Title>Error</Alert.Title>
-            <Alert.Description>{error.message}</Alert.Description>
-          </Alert>
+      <Layout
+        title="Loading Model"
+        breadcrumbs={[
+          { label: 'Models', href: '/models' },
+          { label: 'Loading...' }
+        ]}
+      >
+        <div className="p-6 flex justify-center">
+          <div className="animate-pulse">Loading model...</div>
         </div>
       </Layout>
     );
@@ -41,30 +32,51 @@ export default function EditModelPage() {
 
   if (!data?.model) {
     return (
-      <Layout>
-        <div className="p-6">
-          <Alert variant="error">
-            <Alert.Title>Model Not Found</Alert.Title>
-            <Alert.Description>
-              The model you are looking for does not exist.
-            </Alert.Description>
-          </Alert>
+      <Layout
+        title="Model Not Found"
+        breadcrumbs={[
+          { label: 'Models', href: '/models' },
+          { label: 'Not Found' }
+        ]}
+      >
+        <div className="p-6 text-center">
+          <p className="text-red-500">The model you are looking for does not exist.</p>
+          <button
+            onClick={() => router.push('/models')}
+            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Back to Models
+          </button>
         </div>
       </Layout>
     );
   }
 
+  const modelName = data.model.name || 'Model';
+
   return (
-    <Layout>
+    <Layout
+      title={`Edit ${modelName}`}
+      description="Edit model details and fields"
+      breadcrumbs={[
+        { label: 'Models', href: '/models' },
+        { label: modelName, href: `/models/${id}` },
+        { label: 'Edit' }
+      ]}
+    >
       <div className="p-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold">Edit Model</h1>
-          <p className="text-neutral-600 dark:text-neutral-400">
-            Edit model details and fields
-          </p>
+        <div className="flex items-center mb-6">
+          <button
+            onClick={() => router.back()}
+            className="mr-4 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+          >
+            ← Back
+          </button>
         </div>
         <ModelEditor model={data.model} mode="edit" />
       </div>
     </Layout>
   );
 }
+
+export default withAuth(EditModelPage, { handleErrors: true });

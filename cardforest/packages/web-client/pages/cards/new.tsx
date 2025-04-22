@@ -6,8 +6,9 @@ import { Alert } from '@/components/ui/Alert';
 import { getModelFullId } from '@/utils/modelUtils';
 import { Layout } from '@/components/Layout';
 import { DebugPanel } from '@/components/debug/DebugPanel';
+import { withAuth } from '@/components/auth';
 
-export default function NewCardPage() {
+function NewCardPage() {
   const router = useRouter();
   const { modelId } = router.query;
 
@@ -91,28 +92,49 @@ export default function NewCardPage() {
   console.log('Final model:', JSON.stringify(processedModel, null, 2));
 
   return (
-    <Layout>
+    <Layout
+      title="Create New Card"
+      description={`Create a new ${model.name || 'card'}`}
+      breadcrumbs={[
+        { label: 'Cards', href: '/cards' },
+        { label: 'Create New Card' }
+      ]}
+    >
       <div className="p-6">
-        <DebugPanel
-          title="Model Data"
-          data={{
-            original: {
-              model: {
-                _id: model._id,
-                fields: model.fields,
+        <div className="flex items-center mb-6">
+          <button
+            onClick={() => router.back()}
+            className="mr-4 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+          >
+            ← Back
+          </button>
+        </div>
+
+        {router.query.debug === 'true' && (
+          <DebugPanel
+            title="Model Data"
+            data={{
+              original: {
+                model: {
+                  _id: model._id,
+                  fields: model.fields,
+                },
+                inheritedModels: inheritedModels.map((t: any) => ({
+                  _id: t._id,
+                  fields: t.fields,
+                })),
               },
-              inheritedModels: inheritedModels.map((t: any) => ({
-                _id: t._id,
-                fields: t.fields,
-              })),
-            },
-            processed: {
-              fields: processedModel.fields,
-            },
-          }}
-        />
+              processed: {
+                fields: processedModel.fields,
+              },
+            }}
+          />
+        )}
+
         <CardEditor model={processedModel} mode="create" />
       </div>
     </Layout>
   );
 }
+
+export default withAuth(NewCardPage, { handleErrors: true });

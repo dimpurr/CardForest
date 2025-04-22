@@ -1,11 +1,11 @@
 import { useRouter } from 'next/router';
 import { useQuery } from '@apollo/client';
 import { Layout } from '@/components/Layout';
-import { Alert } from '@/components/ui/Alert';
 import { GET_CARD } from '@/graphql/queries/cardQueries';
 import { CardEditor } from '@/components/card/CardEditor';
+import { withAuth } from '@/components/auth';
 
-export default function EditCardPage() {
+function EditCardPage() {
   const router = useRouter();
   const { id } = router.query;
 
@@ -16,24 +16,15 @@ export default function EditCardPage() {
 
   if (loading) {
     return (
-      <Layout>
-        <div className="p-6">
-          <Alert>
-            <Alert.Description>Loading card...</Alert.Description>
-          </Alert>
-        </div>
-      </Layout>
-    );
-  }
-
-  if (error) {
-    return (
-      <Layout>
-        <div className="p-6">
-          <Alert variant="error">
-            <Alert.Title>Error</Alert.Title>
-            <Alert.Description>{error.message}</Alert.Description>
-          </Alert>
+      <Layout
+        title="Loading Card"
+        breadcrumbs={[
+          { label: 'Cards', href: '/cards' },
+          { label: 'Loading...' }
+        ]}
+      >
+        <div className="p-6 flex justify-center">
+          <div className="animate-pulse">Loading card...</div>
         </div>
       </Layout>
     );
@@ -41,21 +32,38 @@ export default function EditCardPage() {
 
   if (!data?.card) {
     return (
-      <Layout>
-        <div className="p-6">
-          <Alert variant="error">
-            <Alert.Title>Card Not Found</Alert.Title>
-            <Alert.Description>
-              The card you are looking for does not exist.
-            </Alert.Description>
-          </Alert>
+      <Layout
+        title="Card Not Found"
+        breadcrumbs={[
+          { label: 'Cards', href: '/cards' },
+          { label: 'Not Found' }
+        ]}
+      >
+        <div className="p-6 text-center">
+          <p className="text-red-500">The card you are looking for does not exist.</p>
+          <button
+            onClick={() => router.push('/cards')}
+            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Back to Cards
+          </button>
         </div>
       </Layout>
     );
   }
 
+  const cardTitle = data.card.title || 'Card';
+
   return (
-    <Layout>
+    <Layout
+      title={`Edit ${cardTitle}`}
+      description="Edit card details"
+      breadcrumbs={[
+        { label: 'Cards', href: '/cards' },
+        { label: cardTitle },
+        { label: 'Edit' }
+      ]}
+    >
       <div className="p-4">
         <div className="flex items-center mb-6">
           <button
@@ -64,10 +72,11 @@ export default function EditCardPage() {
           >
             ← Back
           </button>
-          <h1 className="text-2xl font-bold">Edit Card</h1>
         </div>
         <CardEditor mode="edit" card={data.card} />
       </div>
     </Layout>
   );
 }
+
+export default withAuth(EditCardPage, { handleErrors: true });
