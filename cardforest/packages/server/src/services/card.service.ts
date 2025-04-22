@@ -1,7 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
-import { ArangoDBService } from './arangodb.service';
 import { ModelService } from './model.service';
-import { Database } from 'arangojs';
+import { CardRepository, Card } from '../repositories/card.repository';
 
 interface CreateCardDto {
   modelId: string;
@@ -20,15 +19,12 @@ interface UpdateCardDto {
 
 @Injectable()
 export class CardService {
-  private db: Database;
   private readonly logger = new Logger(CardService.name);
 
   constructor(
-    private readonly arangoDBService: ArangoDBService,
+    private readonly cardRepository: CardRepository,
     private readonly modelService: ModelService,
-  ) {
-    this.db = this.arangoDBService.getDatabase();
-  }
+  ) {}
 
   async createCard(
     input: CreateCardDto,
@@ -139,65 +135,24 @@ export class CardService {
 
   async getCardById(cardId: string): Promise<any> {
     try {
-      const query = `
-        FOR card IN cards
-          FILTER card._key == @cardId
-          LET model = FIRST(
-            FOR t IN models
-              FILTER t._key == card.modelId
-              RETURN t
-          )
-          LET user = FIRST(
-            FOR u IN users
-              FILTER u._id == card.createdBy
-              RETURN {
-                _id: u._id,
-                _key: u._key,
-                username: u.username || u.name || u.email || u._key,
-                provider: u.provider,
-                providerId: u.providerId
-              }
-          )
-          RETURN MERGE(card, { model, createdBy: user })
-      `;
-      const cursor = await this.db.query(query, { cardId });
-      const card = await cursor.next();
+      this.logger.log(`Getting card by ID: ${cardId}`);
+      const card = await this.cardRepository.getCardWithRelations(cardId);
       if (!card) {
         throw new NotFoundException('Card not found');
       }
       return card;
     } catch (error) {
-      this.logger.error('Failed to get card:', error);
+      this.logger.error(`Failed to get card: ${error.message}`, error.stack);
       throw error;
     }
   }
 
   async getCards(): Promise<any[]> {
     try {
-      const query = `
-        FOR card IN cards
-          LET model = FIRST(
-            FOR t IN models
-              FILTER t._key == card.modelId
-              RETURN t
-          )
-          LET user = FIRST(
-            FOR u IN users
-              FILTER u._id == card.createdBy
-              RETURN {
-                _id: u._id,
-                _key: u._key,
-                username: u.username || u.name || u.email || u._key,
-                provider: u.provider,
-                providerId: u.providerId
-              }
-          )
-          RETURN MERGE(card, { model, createdBy: user })
-      `;
-      const cursor = await this.db.query(query);
-      return cursor.all();
+      this.logger.log('Getting all cards');
+      return await this.cardRepository.getAllWithRelations();
     } catch (error) {
-      this.logger.error('Failed to get cards:', error);
+      this.logger.error(`Failed to get cards: ${error.message}`, error.stack);
       return [];
     }
   }
@@ -244,66 +199,10 @@ export class CardService {
 
   async getMyCards(userId: string): Promise<any[]> {
     try {
-      const usersCollection = this.db.collection('users');
-      const userRef = `${usersCollection.name}/${userId}`;
-
-      this.logger.debug('Getting cards for user:', { userId, userRef });
-
-      // 使用更灵活的查询，处理不同格式的 createdBy 字段
-      const query = `
-        // 获取所有卡片
-        FOR card IN cards
-          // 先获取卡片的模型
-          LET model = FIRST(
-            FOR t IN models
-              FILTER t._key == card.modelId
-              RETURN t
-          )
-          // 如果 createdBy 是字符串，尝试获取用户
-          LET user = FIRST(
-            FOR u IN users
-              FILTER u._id == card.createdBy || u._key == @userId
-              RETURN {
-                _id: u._id,
-                _key: u._key,
-                username: u.username || u.name || u.email || u._key,
-                provider: u.provider,
-                providerId: u.providerId
-              }
-          )
-          // 判断卡片是否属于当前用户
-          LET isOwner = (
-            // 情况 1: createdBy 是字符串，匹配 userRef
-            card.createdBy == @userRef ||
-            // 情况 2: createdBy 是对象，匹配 username
-            (IS_OBJECT(card.createdBy) && card.createdBy.username == @username) ||
-            // 情况 3: createdBy 是对象，匹配 _key
-            (IS_OBJECT(card.createdBy) && card.createdBy._key == @userId)
-          )
-          // 只返回属于当前用户的卡片
-          FILTER isOwner || true  // 暂时返回所有卡片以便于调试
-          SORT card.createdAt DESC
-          RETURN MERGE(card, { model, createdBy: user })
-      `;
-
-      // 获取用户名
-      const user = await this.db.query(`
-        FOR user IN users
-          FILTER user._key == @userId
-          RETURN user
-      `, { userId }).then(cursor => cursor.next());
-
-      const username = user ? user.username : userId;
-
-      const bindVars = { userRef, userId, username };
-      this.logger.debug('Running query with params:', bindVars);
-
-      const cursor = await this.db.query(query, bindVars);
-      const cards = await cursor.all();
-      this.logger.debug('Found cards:', cards.length);
-      return cards;
+      this.logger.debug(`Getting cards for user: ${userId}`);
+      return await this.cardRepository.findByCreator(userId);
     } catch (error) {
-      this.logger.error('Error getting cards:', error);
+      this.logger.error(`Error getting cards: ${error.message}`, error.stack);
       throw error;
     }
   }
@@ -380,42 +279,10 @@ export class CardService {
 
   async getCardsWithRelations(): Promise<any[]> {
     try {
-      const query = `
-        FOR card IN cards
-          LET model = FIRST(
-            FOR t IN models
-              FILTER t._key == card.modelId
-              RETURN t
-          )
-          LET creator = FIRST(
-            FOR user IN users
-              FILTER user._id == card.createdBy
-              RETURN {
-                username: user.username
-              }
-          )
-          LET relations = (
-            FOR relation IN CardRelations
-              FILTER relation._from == card._id
-              FOR relatedCard IN cards
-                FILTER relation._to == relatedCard._id
-                RETURN relatedCard
-          )
-          RETURN {
-            card: MERGE(
-              UNSET(card, ['createdBy']),
-              {
-                createdBy: creator,
-                model: model
-              }
-            ),
-            children: relations
-          }
-      `;
-      const cursor = await this.db.query(query);
-      return cursor.all();
+      this.logger.log('Getting cards with relations');
+      return await this.cardRepository.getCardsWithChildren();
     } catch (error) {
-      this.logger.error('Failed to get cards with relations:', error);
+      this.logger.error(`Failed to get cards with relations: ${error.message}`, error.stack);
       return [];
     }
   }
@@ -429,15 +296,10 @@ export class CardService {
         throw new ForbiddenException('You can only create relations from your own cards');
       }
 
-      const collection = this.db.collection('CardRelations');
-      await collection.save({
-        _from: `cards/${fromCardId}`,
-        _to: `cards/${toCardId}`,
-        createdAt: new Date().toISOString(),
-        createdBy: `users/${userId}`,
-      });
+      await this.cardRepository.createRelation(fromCardId, toCardId);
+      this.logger.log(`Created relation from card ${fromCardId} to card ${toCardId}`);
     } catch (error) {
-      this.logger.error('Failed to create relation:', error);
+      this.logger.error(`Failed to create relation: ${error.message}`, error.stack);
       throw error;
     }
   }

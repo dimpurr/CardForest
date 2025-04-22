@@ -1,73 +1,56 @@
-import { Injectable } from '@nestjs/common';
-import { ArangoDBService } from './arangodb.service';
+import { Injectable, Logger } from '@nestjs/common';
+import { UserRepository, User } from '../repositories/user.repository';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UserService {
-  constructor(private readonly arangoDBService: ArangoDBService) {}
+  private readonly logger = new Logger(UserService.name);
 
-  async createUser(username: string, password: string): Promise<any> {
+  constructor(private readonly userRepository: UserRepository) {}
+
+  async createUser(username: string, password: string): Promise<User> {
     try {
-      const db = this.arangoDBService.getDatabase();
-      const collection = db.collection('users');
+      this.logger.log(`Creating user: ${username}`);
 
-      const user = await collection.save({
+      const user = await this.userRepository.create({
         username,
         password, // 直接保存传入的 password，因为在 auth.service 中已经做了 hash
+        createdAt: new Date().toISOString(),
       });
 
       return user;
     } catch (error) {
-      console.error('Failed to create user:', error);
+      this.logger.error(`Failed to create user: ${error.message}`, error.stack);
       throw error;
     }
   }
 
-  async getUsers(): Promise<any[]> {
+  async getUsers(): Promise<User[]> {
     try {
-      const db = this.arangoDBService.getDatabase();
-      const collection = db.collection('users');
-
-      const cursor = await collection.all();
-      const users = await cursor.all();
-      return users;
+      this.logger.log('Getting all users');
+      return await this.userRepository.findAll();
     } catch (error) {
-      console.error('Failed to get users:', error);
+      this.logger.error(`Failed to get users: ${error.message}`, error.stack);
       return [];
     }
   }
 
-  async findUserByUsername(username: string): Promise<any> {
+  async findUserByUsername(username: string): Promise<User | null> {
     try {
-      const db = this.arangoDBService.getDatabase();
-      const collection = db.collection('users');
-      const cursor = await db.query({
-        query: `
-        FOR user IN @@collection
-        FILTER user.username == @username
-        RETURN user
-      `,
-        bindVars: {
-          '@collection': collection.name,
-          username,
-        },
-      });
-      const [user] = await cursor.all();
-      return user;
+      this.logger.log(`Finding user by username: ${username}`);
+      return await this.userRepository.findByUsername(username);
     } catch (error) {
-      console.error('Failed to find user by username:', error);
+      this.logger.error(`Failed to find user by username: ${error.message}`, error.stack);
       return null;
     }
   }
 
-  async getUserById(userId: string): Promise<any> {
+  async getUserById(userId: string): Promise<User | null> {
     try {
-      const db = this.arangoDBService.getDatabase();
-      const collection = db.collection('users');
-      const user = await collection.document(userId);
-      return user;
+      this.logger.log(`Getting user by ID: ${userId}`);
+      return await this.userRepository.findById(userId);
     } catch (error) {
-      console.error('Failed to get user by id:', error);
+      this.logger.error(`Failed to get user by ID: ${error.message}`, error.stack);
       return null;
     }
   }

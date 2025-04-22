@@ -1,6 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { ArangoDBService } from './arangodb.service';
-import { Database, aql } from 'arangojs';
+import { Injectable, Logger } from '@nestjs/common';
+import { ModelRepository } from '../repositories/model.repository';
 import {
   Model,
   FieldDefinition,
@@ -10,56 +9,49 @@ import {
 
 @Injectable()
 export class ModelService {
-  private db: Database;
-  private modelCollection: any;
+  private readonly logger = new Logger(ModelService.name);
 
-  constructor(private readonly arangoDBService: ArangoDBService) {
-    this.db = this.arangoDBService.getDatabase();
-    this.modelCollection = this.db.collection('models');
-  }
+  constructor(private readonly modelRepository: ModelRepository) {}
 
   async getModels(): Promise<FlattenedModel[]> {
     try {
+      this.logger.log('Getting all models');
       const models = await this.getModelsWithFields();
       return models.map((model) => this.flattenModel(model));
     } catch (error) {
-      console.error('Failed to get models:', error);
+      this.logger.error(`Failed to get models: ${error.message}`, error.stack);
       throw error;
     }
   }
 
   async getModelsWithFields(): Promise<Model[]> {
     try {
-      const query = aql`
-        FOR model IN models
-        SORT model.createdAt DESC
-        RETURN model
-      `;
-      const cursor = await this.db.query(query);
-      const models = await cursor.all();
-      return models;
+      this.logger.log('Getting all models with fields');
+      return await this.modelRepository.findAllModels();
     } catch (error) {
-      console.error('Failed to get models with fields:', error);
+      this.logger.error(`Failed to get models with fields: ${error.message}`, error.stack);
       throw error;
     }
   }
 
   async getModelById(id: string): Promise<FlattenedModel> {
     try {
+      this.logger.log(`Getting model by ID: ${id}`);
       const model = await this.getModelWithInheritance(id);
       if (!model) {
         throw new Error('Model not found');
       }
       return this.flattenModel(model);
     } catch (error) {
-      console.error('Failed to get model by id:', error);
+      this.logger.error(`Failed to get model by id: ${error.message}`, error.stack);
       throw error;
     }
   }
 
   async getFullModelById(id: string): Promise<Model> {
     try {
-      const model = await this.modelCollection.document(id);
+      this.logger.log(`Getting full model by ID: ${id}`);
+      const model = await this.modelRepository.findById(id);
       if (!model) {
         throw new Error('Model not found');
       }
@@ -68,38 +60,19 @@ export class ModelService {
       if (error.message === 'Model not found') {
         throw error;
       }
-      console.error('Failed to get full model by id:', error);
+      this.logger.error(`Failed to get full model by id: ${error.message}`, error.stack);
       throw new Error('Failed to get model');
     }
   }
 
   async getModelWithInheritance(modelId: string): Promise<Model> {
-    const model = await this.getFullModelById(modelId);
-    if (!model) {
-      throw new Error('Model not found');
+    try {
+      this.logger.log(`Getting model with inheritance: ${modelId}`);
+      return await this.modelRepository.findWithInheritance(modelId);
+    } catch (error) {
+      this.logger.error(`Failed to get model with inheritance: ${error.message}`, error.stack);
+      throw error;
     }
-
-    if (!model.inherits_from || model.inherits_from.length === 0) {
-      return model;
-    }
-
-    const inheritedModels = await Promise.all(
-      model.inherits_from.map((parentId) => this.getFullModelById(parentId)),
-    );
-
-    // Merge fields from inherited models
-    const mergedFields: FieldGroup[] = [];
-    for (const parent of inheritedModels) {
-      if (parent) {
-        mergedFields.push(...parent.fields);
-      }
-    }
-    mergedFields.push(...model.fields);
-
-    return {
-      ...model,
-      fields: mergedFields,
-    };
   }
 
   flattenModel(model: Model): FlattenedModel {
@@ -286,53 +259,55 @@ export class ModelService {
     input: { name: string; fields: FieldGroup[]; inherits_from?: string[] },
     user: any,
   ): Promise<Model> {
-    this.validateFields(input.fields);
-
-    const model: Model = {
-      name: input.name,
-      fields: input.fields,
-      inherits_from: input.inherits_from || [],
-      system: false,
-      createdAt: new Date().toISOString(),
-      createdBy: `users/${user.sub}`,
-    };
-
     try {
-      const result = await this.modelCollection.save(model);
-      return {
-        ...model,
-        _id: result._id,
-        _key: result._key,
-        _rev: result._rev,
+      this.logger.log(`Creating model: ${input.name}`);
+      this.validateFields(input.fields);
+
+      const model: Model = {
+        name: input.name,
+        fields: input.fields,
+        inherits_from: input.inherits_from || [],
+        system: false,
+        createdAt: new Date().toISOString(),
+        createdBy: `users/${user.sub}`,
       };
+
+      return await this.modelRepository.create(model);
     } catch (error) {
-      console.error('Failed to create model:', error);
+      this.logger.error(`Failed to create model: ${error.message}`, error.stack);
       throw error;
     }
   }
 
   async updateModel(modelId: string, updates: Partial<Model>): Promise<Model> {
-    const model = await this.getFullModelById(modelId);
-    if (!model) {
-      throw new Error('Model not found');
+    try {
+      this.logger.log(`Updating model: ${modelId}`);
+      const model = await this.getFullModelById(modelId);
+      if (!model) {
+        throw new Error('Model not found');
+      }
+
+      if (updates.fields) {
+        this.validateFields(updates.fields);
+      }
+
+      const updatedModel = {
+        ...model,
+        ...updates,
+        updatedAt: new Date().toISOString(),
+      };
+
+      await this.modelRepository.update(modelId, updatedModel);
+      return this.getFullModelById(modelId);
+    } catch (error) {
+      this.logger.error(`Failed to update model: ${error.message}`, error.stack);
+      throw error;
     }
-
-    if (updates.fields) {
-      this.validateFields(updates.fields);
-    }
-
-    const updatedModel = {
-      ...model,
-      ...updates,
-      updatedAt: new Date().toISOString(),
-    };
-
-    await this.modelCollection.update(modelId, updatedModel);
-    return this.getFullModelById(modelId);
   }
 
   async deleteModel(modelId: string): Promise<boolean> {
     try {
+      this.logger.log(`Deleting model: ${modelId}`);
       const model = await this.getModelById(modelId);
       if (!model) {
         throw new Error(`Model ${modelId} not found`);
@@ -342,34 +317,23 @@ export class ModelService {
         throw new Error('Cannot delete system model');
       }
 
-      // 检查是否有其他模态类继承自此模态类
-      const query = aql`
-        FOR t IN models
-        FILTER t.inherits_from == ${modelId}
-        RETURN t
-      `;
-      const cursor = await this.db.query(query);
-      const children = await cursor.all();
-      if (children.length > 0) {
+      // 检查是否有其他模型继承自此模型
+      const hasChildren = await this.modelRepository.hasChildren(modelId);
+      if (hasChildren) {
         throw new Error('Cannot delete model with children');
       }
 
-      // 检查是否有卡片使用此模态类
-      const cardQuery = aql`
-        FOR card IN cards
-        FILTER card.model == ${modelId}
-        RETURN card
-      `;
-      const cardCursor = await this.db.query(cardQuery);
-      const cards = await cardCursor.all();
-      if (cards.length > 0) {
+      // 检查是否有卡片使用此模型
+      const isUsedByCards = await this.modelRepository.isUsedByCards(modelId);
+      if (isUsedByCards) {
         throw new Error('Cannot delete model in use by cards');
       }
 
-      await this.modelCollection.remove(modelId);
+      await this.modelRepository.delete(modelId);
+      this.logger.log(`Model ${modelId} deleted successfully`);
       return true;
     } catch (error) {
-      console.error('Failed to delete model:', error);
+      this.logger.error(`Failed to delete model: ${error.message}`, error.stack);
       throw error;
     }
   }

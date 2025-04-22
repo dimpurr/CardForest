@@ -16,6 +16,7 @@ import { UserResolver } from '../graphql/user.resolver';
 import { ModelResolver } from '../graphql/model.resolver';
 import { AuthResolver } from '../graphql/auth.resolver';
 import { DatabaseModule } from './database.module';
+import { RepositoryModule } from './repository.module';
 import { UserModule } from './user.module';
 import { AuthModule } from './auth.module';
 import { CardController } from 'src/controllers/card.controller';
