@@ -3,9 +3,15 @@ import { ModelList } from '@/components/model/ModelList';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/Button';
 import { withAuth } from '@/components/auth';
+import { PlusIcon } from '@heroicons/react/24/outline';
 
 function ModelsPage() {
   const router = useRouter();
+
+  // 处理创建模型按钮点击
+  const handleCreateModel = () => {
+    router.push('/models/new');
+  };
 
   return (
     <Layout
@@ -14,18 +20,18 @@ function ModelsPage() {
       breadcrumbs={[
         { label: 'Models' }
       ]}
+      actions={
+        <Button
+          variant="primary"
+          onClick={handleCreateModel}
+          className="flex items-center"
+        >
+          <PlusIcon className="h-4 w-4 mr-1" />
+          Create Model
+        </Button>
+      }
     >
-      <div className="p-4">
-        <div className="flex justify-end mb-6">
-          <Button
-            variant="primary"
-            onClick={() => router.push('/models/new')}
-          >
-            Create Model
-          </Button>
-        </div>
-        <ModelList />
-      </div>
+      <ModelList />
     </Layout>
   );
 }

@@ -2,57 +2,58 @@ import { useRouter } from 'next/router';
 import { useQuery } from '@apollo/client';
 import { GET_MODEL_WITH_INHERITANCE } from '@/graphql/queries/modelQueries';
 import { CardEditor } from '@/components/card/CardEditor';
-import { Alert } from '@/components/ui/Alert';
 import { getModelFullId } from '@/utils/modelUtils';
 import { Layout } from '@/components/Layout';
 import { DebugPanel } from '@/components/debug/DebugPanel';
 import { withAuth } from '@/components/auth';
+import { PageState } from '@/components/ui/PageState';
+import { Button } from '@/components/ui/Button';
+import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 function NewCardPage() {
   const router = useRouter();
   const { modelId } = router.query;
+
+  // 如果没有选择模型，重定向到卡片列表页面
+  if (!modelId && typeof window !== 'undefined') {
+    router.replace('/cards');
+    return null;
+  }
 
   const { data, loading, error } = useQuery(GET_MODEL_WITH_INHERITANCE, {
     variables: { id: getModelFullId(modelId as string) },
     skip: !modelId,
   });
 
-  if (!modelId) {
-    return (
-      <Layout>
-        <div className="p-6">
-          <Alert variant="error">
-            <Alert.Title>Error</Alert.Title>
-            <Alert.Description>No model selected. Please select a model first.</Alert.Description>
-          </Alert>
-        </div>
-      </Layout>
-    );
-  }
-
+  // 处理加载状态
   if (loading) {
     return (
-      <Layout>
-        <div className="p-6">
-          <Alert>
-            <Alert.Description>Loading model...</Alert.Description>
-          </Alert>
-        </div>
+      <Layout
+        title="Create New Card"
+        breadcrumbs={[
+          { label: 'Cards', href: '/cards' },
+          { label: 'Create New Card' }
+        ]}
+      >
+        <PageState loading={true} loadingMessage="Loading model..." />
       </Layout>
     );
   }
 
+  // 处理错误状态
   if (error || !data?.model) {
     return (
-      <Layout>
-        <div className="p-6">
-          <Alert variant="error">
-            <Alert.Title>Error</Alert.Title>
-            <Alert.Description>
-              {error ? error.message : 'Failed to load model'}
-            </Alert.Description>
-          </Alert>
-        </div>
+      <Layout
+        title="Error"
+        breadcrumbs={[
+          { label: 'Cards', href: '/cards' },
+          { label: 'Error' }
+        ]}
+      >
+        <PageState
+          error={error || new Error('Failed to load model')}
+          retry={() => router.reload()}
+        />
       </Layout>
     );
   }
@@ -89,50 +90,48 @@ function NewCardPage() {
     ]
   };
 
-  console.log('Final model:', JSON.stringify(processedModel, null, 2));
-
   return (
     <Layout
       title="Create New Card"
-      description={`Create a new ${model.name || 'card'}`}
+      description={`Create a new ${model.name} card`}
       breadcrumbs={[
         { label: 'Cards', href: '/cards' },
         { label: 'Create New Card' }
       ]}
+      actions={
+        <Button
+          variant="outline"
+          onClick={() => router.back()}
+          className="flex items-center"
+        >
+          <ArrowLeftIcon className="h-4 w-4 mr-1" />
+          Back
+        </Button>
+      }
     >
-      <div className="p-6">
-        <div className="flex items-center mb-6">
-          <button
-            onClick={() => router.back()}
-            className="mr-4 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-          >
-            ← Back
-          </button>
-        </div>
-
-        {router.query.debug === 'true' && (
-          <DebugPanel
-            title="Model Data"
-            data={{
-              original: {
-                model: {
-                  _id: model._id,
-                  fields: model.fields,
-                },
-                inheritedModels: inheritedModels.map((t: any) => ({
-                  _id: t._id,
-                  fields: t.fields,
-                })),
+      {/* 调试面板 - 仅在开发环境和调试模式下显示 */}
+      {process.env.NODE_ENV === 'development' && router.query.debug === 'true' && (
+        <DebugPanel
+          title="Model Data"
+          data={{
+            original: {
+              model: {
+                _id: model._id,
+                fields: model.fields,
               },
-              processed: {
-                fields: processedModel.fields,
-              },
-            }}
-          />
-        )}
+              inheritedModels: inheritedModels.map((t: any) => ({
+                _id: t._id,
+                fields: t.fields,
+              })),
+            },
+            processed: {
+              fields: processedModel.fields,
+            },
+          }}
+        />
+      )}
 
-        <CardEditor model={processedModel} mode="create" />
-      </div>
+      <CardEditor model={processedModel} mode="create" />
     </Layout>
   );
 }

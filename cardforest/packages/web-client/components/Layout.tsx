@@ -10,9 +10,20 @@ interface LayoutProps {
   title?: string;
   description?: string;
   breadcrumbs?: Array<{ label: string; href?: string }>;
+  actions?: ReactNode;
+  fullWidth?: boolean;
+  hideTitle?: boolean;
 }
 
-export function Layout({ children, title, description, breadcrumbs }: LayoutProps) {
+export function Layout({
+  children,
+  title,
+  description,
+  breadcrumbs,
+  actions,
+  fullWidth = false,
+  hideTitle = false
+}: LayoutProps) {
   const router = useRouter();
   const pageTitle = title ? `${title} | CardForest` : 'CardForest';
   const pageDescription = description || 'Your personal knowledge garden';
@@ -28,19 +39,30 @@ export function Layout({ children, title, description, breadcrumbs }: LayoutProp
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
       <Navigation />
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <div className={`${fullWidth ? 'w-full' : 'max-w-7xl mx-auto'} py-6 px-4 sm:px-6 lg:px-8`}>
         {currentBreadcrumbs && currentBreadcrumbs.length > 0 && (
           <div className="mb-4">
             <Breadcrumb items={currentBreadcrumbs} />
           </div>
         )}
-        {title && (
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold">{title}</h1>
-            {description && <p className="text-gray-600 dark:text-gray-400 mt-1">{description}</p>}
+
+        {!hideTitle && (title || actions) && (
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              {title && <h1 className="text-2xl font-bold">{title}</h1>}
+              {description && <p className="text-gray-600 dark:text-gray-400 mt-1">{description}</p>}
+            </div>
+            {actions && (
+              <div className="mt-4 sm:mt-0 flex space-x-3 justify-end">
+                {actions}
+              </div>
+            )}
           </div>
         )}
-        <main>{children}</main>
+
+        <main className="pb-12">
+          {children}
+        </main>
       </div>
     </div>
   );

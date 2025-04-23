@@ -4,6 +4,9 @@ import { Layout } from '@/components/Layout';
 import { GET_CARD } from '@/graphql/queries/cardQueries';
 import { CardEditor } from '@/components/card/CardEditor';
 import { withAuth } from '@/components/auth';
+import { PageState } from '@/components/ui/PageState';
+import { Button } from '@/components/ui/Button';
+import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 function EditCardPage() {
   const router = useRouter();
@@ -14,22 +17,40 @@ function EditCardPage() {
     skip: !id,
   });
 
+  // 处理加载状态
   if (loading) {
     return (
       <Layout
-        title="Loading Card"
+        title="Edit Card"
         breadcrumbs={[
           { label: 'Cards', href: '/cards' },
           { label: 'Loading...' }
         ]}
       >
-        <div className="p-6 flex justify-center">
-          <div className="animate-pulse">Loading card...</div>
-        </div>
+        <PageState loading={true} loadingMessage="Loading card..." />
       </Layout>
     );
   }
 
+  // 处理错误状态
+  if (error) {
+    return (
+      <Layout
+        title="Error"
+        breadcrumbs={[
+          { label: 'Cards', href: '/cards' },
+          { label: 'Error' }
+        ]}
+      >
+        <PageState
+          error={error}
+          retry={() => router.reload()}
+        />
+      </Layout>
+    );
+  }
+
+  // 处理卡片不存在的情况
   if (!data?.card) {
     return (
       <Layout
@@ -39,20 +60,24 @@ function EditCardPage() {
           { label: 'Not Found' }
         ]}
       >
-        <div className="p-6 text-center">
-          <p className="text-red-500">The card you are looking for does not exist.</p>
-          <button
-            onClick={() => router.push('/cards')}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            Back to Cards
-          </button>
-        </div>
+        <PageState
+          empty={true}
+          emptyMessage="The card you are looking for does not exist."
+        >
+          <div className="mt-4 flex justify-center">
+            <Button
+              variant="primary"
+              onClick={() => router.push('/cards')}
+            >
+              Back to Cards
+            </Button>
+          </div>
+        </PageState>
       </Layout>
     );
   }
 
-  const cardTitle = data.card.title || 'Card';
+  const cardTitle = data.card.title || 'Untitled Card';
 
   return (
     <Layout
@@ -60,21 +85,21 @@ function EditCardPage() {
       description="Edit card details"
       breadcrumbs={[
         { label: 'Cards', href: '/cards' },
-        { label: cardTitle },
+        { label: cardTitle, href: `/cards/${id}` },
         { label: 'Edit' }
       ]}
+      actions={
+        <Button
+          variant="outline"
+          onClick={() => router.back()}
+          className="flex items-center"
+        >
+          <ArrowLeftIcon className="h-4 w-4 mr-1" />
+          Back
+        </Button>
+      }
     >
-      <div className="p-4">
-        <div className="flex items-center mb-6">
-          <button
-            onClick={() => router.back()}
-            className="mr-4 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-          >
-            ← Back
-          </button>
-        </div>
-        <CardEditor mode="edit" card={data.card} />
-      </div>
+      <CardEditor mode="edit" card={data.card} />
     </Layout>
   );
 }

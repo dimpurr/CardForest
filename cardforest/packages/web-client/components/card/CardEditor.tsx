@@ -4,12 +4,13 @@ import { CREATE_CARD, UPDATE_CARD } from '@/graphql/mutations/cardMutations';
 import { GET_MODEL_WITH_INHERITANCE } from '@/graphql/queries/modelQueries';
 import { GET_MY_CARDS } from '@/graphql/queries/cardQueries';
 import { CardForm } from './CardForm';
-import { Button } from '@/components/ui/Button';
-import { Model } from '@/types/model';
-import { DebugPanel } from '@/components/debug/DebugPanel';
+import { Model } from '@/atoms/modelAtoms';
+import { PageState } from '@/components/ui/PageState';
 import { useState } from 'react';
 import { Alert } from '@/components/ui/Alert';
 import toast from 'react-hot-toast';
+import { useAtom } from 'jotai';
+import { recentModelsAtom } from '@/atoms/modelAtoms';
 
 interface CardEditorProps {
   mode?: 'create' | 'edit';
@@ -25,52 +26,72 @@ export function CardEditor({
   onSuccess,
 }: CardEditorProps) {
   const router = useRouter();
-  const [createCard] = useMutation(CREATE_CARD, {
-    update(cache, { data: { createCard } }) {
-      const existingCards = cache.readQuery<{ myCards: any[] }>({
-        query: GET_MY_CARDS
-      });
-
-      if (existingCards) {
-        cache.writeQuery({
-          query: GET_MY_CARDS,
-          data: {
-            myCards: [...existingCards.myCards, createCard]
-          }
-        });
-      } else {
-        cache.writeQuery({
-          query: GET_MY_CARDS,
-          data: {
-            myCards: [createCard]
-          }
-        });
-      }
-    },
-    onCompleted: () => {
-      toast.success('Card created successfully!');
-      setTimeout(() => {
-        router.push('/');
-      }, 1000);
-    },
-    onError: (error) => {
-      toast.error(`Failed to create card: ${error.message}`);
-    }
-  });
-  const [updateCard] = useMutation(UPDATE_CARD);
+  const [, setRecentModels] = useAtom(recentModelsAtom);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // 创建卡片 mutation
+  const [createCard] = useMutation(CREATE_CARD, {
+    update(cache, { data: { createCard } }) {
+      try {
+        const existingCards = cache.readQuery<{ myCards: any[] }>({
+          query: GET_MY_CARDS
+        });
+
+        if (existingCards) {
+          cache.writeQuery({
+            query: GET_MY_CARDS,
+            data: {
+              myCards: [...existingCards.myCards, createCard]
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error updating cache:', error);
+      }
+    },
+    onCompleted: () => {
+      // 添加到最近使用的模型
+      setRecentModels(prev => {
+        const modelId = model._id;
+        return [modelId, ...prev.filter(id => id !== modelId)].slice(0, 5);
+      });
+
+      toast.success('Card created successfully!');
+      router.push('/cards');
+    },
+    onError: (error) => {
+      toast.error(`Failed to create card: ${error.message}`);
+      setError(error.message);
+    }
+  });
+
+  // 更新卡片 mutation
+  const [updateCard] = useMutation(UPDATE_CARD, {
+    onCompleted: () => {
+      toast.success('Card updated successfully!');
+      onSuccess?.();
+      router.push('/cards');
+    },
+    onError: (error) => {
+      toast.error(`Failed to update card: ${error.message}`);
+      setError(error.message);
+    }
+  });
+
   // 如果是编辑模式，获取模板数据
-  const { data: modelData } = useQuery(GET_MODEL_WITH_INHERITANCE, {
+  const { data: modelData, loading: modelLoading, error: modelError } = useQuery(GET_MODEL_WITH_INHERITANCE, {
     variables: { id: card?.modelId },
     skip: mode === 'create' || !card?.modelId,
   });
 
+  // 处理表单提交
   const handleSubmit = async (data: any) => {
     try {
       setError(null);
       setIsSubmitting(true);
+
+      // 准备输入数据
       const input = {
         modelId: model._id.split('/').pop() || '',
         title: data.title || '',
@@ -84,28 +105,18 @@ export function CardEditor({
           }, {})
       };
 
-      console.log('Submitting card data:', input);
-
+      // 根据模式执行创建或更新操作
       if (mode === 'create') {
-        const result = await createCard({
+        await createCard({
           variables: { input }
         });
-        console.log('Card created:', result);
-        if (!result.data?.createCard) {
-          throw new Error('Failed to create card');
-        }
       } else {
-        const result = await updateCard({
+        await updateCard({
           variables: {
             id: card._id,
             input
           }
         });
-        if (!result.data?.updateCard) {
-          throw new Error('Failed to update card');
-        }
-        onSuccess?.();
-        router.push('/cards');
       }
     } catch (error: any) {
       console.error('Failed to save card:', error);
@@ -115,31 +126,43 @@ export function CardEditor({
     }
   };
 
+  // 处理取消操作
   const handleCancel = () => {
     router.back();
   };
 
-  // 如果是编辑模式且需要模板数据，等待加载完成
-  if (mode === 'edit' && !modelData?.model) {
-    return <div>Loading model...</div>;
+  // 显示加载状态
+  if (mode === 'edit' && modelLoading) {
+    return (
+      <PageState loading={true} />
+    );
+  }
+
+  // 显示错误状态
+  if (mode === 'edit' && modelError) {
+    return (
+      <PageState
+        error={modelError}
+        retry={() => router.reload()}
+      />
+    );
   }
 
   // 使用编辑模式下的模板数据或创建模式下传入的模板
   const activeModel = mode === 'edit' ? modelData?.model : model;
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">
-          {mode === 'create' ? 'Create New Card' : 'Edit Card'}
-        </h1>
-        <div className="text-sm text-gray-500">
-          using model: {activeModel.name}
-        </div>
-      </div>
+  // 准备默认值
+  const defaultValues = card ? {
+    title: card.title || '',
+    content: card.content || '',
+    body: card.body || '',
+    ...(card.meta || {})
+  } : {};
 
+  return (
+    <div>
       {error && (
-        <Alert variant="error">
+        <Alert variant="error" className="mb-6">
           <Alert.Description>{error}</Alert.Description>
         </Alert>
       )}
@@ -147,40 +170,10 @@ export function CardEditor({
       <CardForm
         model={activeModel}
         onSubmit={handleSubmit}
-        defaultValues={card?.fields?.reduce((acc: any, field: any) => {
-          acc[field.name] = field.value;
-          return acc;
-        }, {})}
+        defaultValues={defaultValues}
+        onCancel={handleCancel}
+        isSubmitting={isSubmitting}
       />
-
-      <DebugPanel
-        title="Form State"
-        data={typeof window !== 'undefined' ? (window as any).form?.getValues() : null}
-      />
-
-      <DebugPanel
-        title="Model Data"
-        data={activeModel}
-      />
-
-      <div className="flex justify-end gap-4">
-        <Button variant="secondary" onClick={handleCancel}>
-          Cancel
-        </Button>
-        <Button
-          type="submit"
-          onClick={(e) => {
-            e.preventDefault();
-            if (typeof window !== 'undefined' && !isSubmitting) {
-              (window as any).handleSubmit(e);
-            }
-          }}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? 'Saving...' : (mode === 'create' ? 'Create Card' : 'Update Card')}
-        </Button>
-      </div>
-
     </div>
   );
 }
