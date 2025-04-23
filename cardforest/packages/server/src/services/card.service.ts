@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { NotFoundError, ValidationError, ForbiddenError, UnauthorizedError } from '../common/errors';
 import { ModelService } from './model.service';
 import { CardRepository, Card } from '../repositories/card.repository';
 
@@ -35,17 +36,24 @@ export class CardService {
       this.logger.log('User data:', user);
 
       // Validate input fields
+      const validationErrors: Record<string, string> = {};
+
       if (!input.modelId || typeof input.modelId !== 'string') {
-        throw new Error('Invalid card data: modelId is required and must be a string');
+        validationErrors.modelId = 'modelId is required and must be a string';
       }
       if (!input.title || typeof input.title !== 'string') {
-        throw new Error('Invalid card data: title is required and must be a string');
+        validationErrors.title = 'title is required and must be a string';
       }
       if (input.content !== undefined && typeof input.content !== 'string') {
-        throw new Error('Invalid card data: content must be a string');
+        validationErrors.content = 'content must be a string';
       }
       if (input.body !== undefined && typeof input.body !== 'string') {
-        throw new Error('Invalid card data: body must be a string');
+        validationErrors.body = 'body must be a string';
+      }
+
+      // 如果有验证错误，抛出 ValidationError
+      if (Object.keys(validationErrors).length > 0) {
+        throw new ValidationError('Invalid card data', { fields: validationErrors });
       }
       if (!input.meta || typeof input.meta !== 'object') {
         this.logger.log('Meta is missing or invalid, initializing empty object');
@@ -138,10 +146,15 @@ export class CardService {
       this.logger.log(`Getting card by ID: ${cardId}`);
       const card = await this.cardRepository.getCardWithRelations(cardId);
       if (!card) {
-        throw new NotFoundException('Card not found');
+        throw new NotFoundError(`Card with ID ${cardId} not found`, { cardId });
       }
       return card;
     } catch (error) {
+      // 如果错误已经是我们的自定义错误，直接抛出
+      if (error instanceof NotFoundError) {
+        throw error;
+      }
+
       this.logger.error(`Failed to get card: ${error.message}`, error.stack);
       throw error;
     }
@@ -218,7 +231,11 @@ export class CardService {
       // 获取卡片和模板信息
       const card = await this.getCardById(cardId);
       if (card.createdBy.username !== userId) {
-        throw new ForbiddenException('You can only update your own cards');
+        throw new ForbiddenError('You can only update your own cards', {
+          cardId,
+          cardOwner: card.createdBy.username,
+          requestUser: userId
+        });
       }
 
       // 验证更新数据
@@ -266,7 +283,11 @@ export class CardService {
       // 检查卡片是否存在并属于该用户
       const card = await this.getCardById(cardId);
       if (card.createdBy.username !== userId) {
-        throw new ForbiddenException('You can only delete your own cards');
+        throw new ForbiddenError('You can only delete your own cards', {
+          cardId,
+          cardOwner: card.createdBy.username,
+          requestUser: userId
+        });
       }
 
       await collection.remove(cardId);
@@ -293,7 +314,12 @@ export class CardService {
       const toCard = await this.getCardById(toCardId);
 
       if (fromCard.createdBy.username !== userId) {
-        throw new ForbiddenException('You can only create relations from your own cards');
+        throw new ForbiddenError('You can only create relations from your own cards', {
+          fromCardId,
+          toCardId,
+          cardOwner: fromCard.createdBy.username,
+          requestUser: userId
+        });
       }
 
       await this.cardRepository.createRelation(fromCardId, toCardId);

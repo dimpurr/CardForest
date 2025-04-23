@@ -79,15 +79,18 @@
 * 后端调试页面（如/install、/card/full）保持简单HTML风格仅用于开发调试和状态查看。环境检测通过typeof window和process.type判断，条件导入根据环境选择具体实现。
 * 认证调试要点：检查Network中/api/auth/session返回和GraphQL请求Authorization header；检查Cookie中jwt和next-auth.session-token存在性；常见问题包括循环登录（检查JWT同步和cookie设置）、401/403（检查Authorization header格式）、Session数据不完整（检查next-auth callbacks）。
 * JWT处理关键：useJWT应该主要检查session状态而非必须要求JWT存在；cookie设置需要{secure:仅生产环境,sameSite:'lax',path:'/',expires:1}；Apollo Client的authLink中用js-cookie替代document.cookie解析；考虑从多个来源获取JWT（session/cookie/URL参数）。
-* 用户ID处理问题：
-  1. 后端resolver中从user对象提取ID时需要考虑多种属性（user.sub/user._key/user.id/user._id）
-  2. 数据库查询中需要处理不同格式的createdBy字段（字符串路径如'users/123'或对象如{username:'user'}）
-  3. ArangoDB查询中需要使用更灵活的查询条件，如`FILTER card.createdBy == @userRef || (IS_OBJECT(card.createdBy) && card.createdBy.username == @username)`
-  4. Card.createdBy非空但返回null说明数据库中user关联丢失，检查Card创建时的user绑定和GraphQL resolver中的关系查询
+* 用户对象和认证系统最佳实践：
+  1. 统一用户接口：创建 User/UserPayload/UserReference 等接口，定义标准的用户对象结构；使用工具类处理不同格式的用户对象（extractUserId/normalizeUser）；在所有服务中使用统一的用户对象格式。
+  2. 用户ID处理：后端resolver中从user对象提取ID时需考虑多种属性（user.sub/user._key/user.id/user._id）；数据库查询中处理不同格式的createdBy字段（字符串路径如'users/123'或对象如{username:'user'}）；ArangoDB查询中使用灵活的查询条件，如`FILTER card.createdBy == @userRef || (IS_OBJECT(card.createdBy) && card.createdBy.username == @username)`。
+  3. JWT认证最佳实践：创建专用的JwtService处理令牌生成、验证和提取；从多个来源提取JWT（Authorization头部/cookies/URL参数）；使用全局守卫和Public装饰器管理路由访问权限；使用OptionalJwtAuthGuard处理可选认证的路由。
+  4. 用户关联问题排查：Card.createdBy非空但返回null说明数据库中user关联丢失，检查Card创建时的user绑定和GraphQL resolver中的关系查询；使用UserUtils.createUserReference创建标准用户引用。
 * Apollo Client相关问题：
   1. 无限循环原因：fetchPolicy设为cache-and-network导致，改为network-only
   2. 查询跳过原因：skip条件过于严格，如`skip: !isAuthenticated && !jwt`改为只检查session状态
   3. 认证失败原因：authorization header不正确或缺失，确保JWT正确传递
+* 错误处理最佳实践：使用继承体系的错误类（AppError基类和特定错误子类）提供一致的错误结构；在错误对象中包含上下文数据（data属性）便于调试和客户端处理；使用全局异常过滤器统一处理HTTP和GraphQL错误；在服务中使用try/catch并记录错误日志，但保持原始错误的传递。
+* 日志系统最佳实践：使用nestjs-pino提供结构化日志，支持不同环境的格式化（开发环境使用pino-pretty）；在日志中包含上下文信息（用户ID、请求ID、模块名称）而非纯文本；使用适当的日志级别（debug/info/warn/error）区分不同类型的信息；在敏感数据（如密码、token）上使用redact防止泄露。
+* 类型安全最佳实践：使用接口定义所有实体类型（User/Card/Model）并添加详细注释；创建共享接口（ArangoDocument/Timestamps）实现继承复用；使用泛型定义仓库类（BaseRepository<T>）提高代码复用性；为所有输入和输出创建专用接口（CreateCardInput/UpdateCardInput）；使用类型别名定义复杂类型（FilterCondition/QueryOptions）；在查询方法中使用泛型参数（db.query<T>）确保类型安全。
 
 ## GraphQL 错误处理
 

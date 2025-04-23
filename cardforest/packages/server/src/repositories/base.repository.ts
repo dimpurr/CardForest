@@ -1,10 +1,17 @@
 import { Database, aql } from 'arangojs';
+import { Logger } from '@nestjs/common';
+import { ArangoDocument, PaginationParams, SortParams, PaginatedResult, FilterCondition, QueryOptions } from '../interfaces/common.interface';
 
 /**
  * 基础仓库类，提供通用的数据库操作
  * @template T 实体类型
  */
-export abstract class BaseRepository<T> {
+export abstract class BaseRepository<T extends ArangoDocument> {
+  /**
+   * 日志器
+   */
+  protected readonly logger: Logger;
+
   /**
    * 构造函数
    * @param db 数据库实例
@@ -13,7 +20,9 @@ export abstract class BaseRepository<T> {
   constructor(
     protected readonly db: Database,
     protected readonly collectionName: string
-  ) {}
+  ) {
+    this.logger = new Logger(this.constructor.name);
+  }
 
   /**
    * 根据ID查找实体
@@ -22,33 +31,75 @@ export abstract class BaseRepository<T> {
    */
   async findById(id: string): Promise<T | null> {
     try {
+      this.logger.debug(`Finding ${this.collectionName} by id: ${id}`);
+
       const query = aql`
         FOR doc IN ${this.collectionName}
         FILTER doc._key == ${id}
         RETURN doc
       `;
-      const cursor = await this.db.query(query);
-      return cursor.hasNext() ? cursor.next() : null;
+
+      const cursor = await this.db.query<T>(query);
+      const result = await cursor.hasNext() ? await cursor.next() : null;
+
+      this.logger.debug(`${this.collectionName} found: ${result ? 'yes' : 'no'}`);
+      return result;
     } catch (error) {
-      console.error(`Failed to find ${this.collectionName} by id:`, error);
+      this.logger.error(`Failed to find ${this.collectionName} by id: ${error.message}`, error.stack);
       throw error;
     }
   }
 
   /**
    * 查找所有实体
+   * @param options 查询选项
    * @returns 实体数组
    */
-  async findAll(): Promise<T[]> {
+  async findAll(options?: QueryOptions): Promise<T[]> {
     try {
-      const query = aql`
-        FOR doc IN ${this.collectionName}
-        RETURN doc
-      `;
-      const cursor = await this.db.query(query);
-      return cursor.all();
+      this.logger.debug(`Finding all ${this.collectionName}`, options);
+
+      let queryStr = aql`FOR doc IN ${this.collectionName}`;
+
+      // 处理过滤条件
+      if (options?.filters && options.filters.length > 0) {
+        const filterQuery = this.buildFilterQuery(options.filters);
+        if (filterQuery) {
+          queryStr = aql`${queryStr} FILTER ${filterQuery}`;
+        }
+      }
+
+      // 处理排序
+      if (options?.sort && options.sort.length > 0) {
+        const sortParts: aql.Query[] = [];
+
+        for (const sort of options.sort) {
+          sortParts.push(aql`doc.${sort.field} ${sort.direction === 'asc' ? 'ASC' : 'DESC'}`);
+        }
+
+        if (sortParts.length > 0) {
+          queryStr = aql`${queryStr} SORT ${aql.join(sortParts, ', ')}`;
+        }
+      }
+
+      // 处理分页
+      if (options?.pagination) {
+        const { page = 1, limit = 20, offset } = options.pagination;
+        const skip = offset !== undefined ? offset : (page - 1) * limit;
+
+        queryStr = aql`${queryStr} LIMIT ${skip}, ${limit}`;
+      }
+
+      // 返回文档
+      queryStr = aql`${queryStr} RETURN doc`;
+
+      const cursor = await this.db.query<T>(queryStr);
+      const results = await cursor.all();
+
+      this.logger.debug(`Found ${results.length} ${this.collectionName}`);
+      return results;
     } catch (error) {
-      console.error(`Failed to find all ${this.collectionName}:`, error);
+      this.logger.error(`Failed to find all ${this.collectionName}: ${error.message}`, error.stack);
       throw error;
     }
   }
@@ -60,11 +111,30 @@ export abstract class BaseRepository<T> {
    */
   async create(data: Partial<T>): Promise<T> {
     try {
+      this.logger.debug(`Creating ${this.collectionName}`, data);
+
+      // 添加时间戳
+      const now = new Date().toISOString();
+      const dataWithTimestamps = {
+        ...data,
+        createdAt: now,
+        updatedAt: now,
+      };
+
       const collection = this.db.collection(this.collectionName);
-      const result = await collection.save(data);
-      return { ...data, _id: result._id, _key: result._key, _rev: result._rev } as T;
+      const result = await collection.save(dataWithTimestamps);
+
+      const createdEntity = {
+        ...dataWithTimestamps,
+        _id: result._id,
+        _key: result._key,
+        _rev: result._rev
+      } as T;
+
+      this.logger.debug(`Created ${this.collectionName} with id: ${result._key}`);
+      return createdEntity;
     } catch (error) {
-      console.error(`Failed to create ${this.collectionName}:`, error);
+      this.logger.error(`Failed to create ${this.collectionName}: ${error.message}`, error.stack);
       throw error;
     }
   }
@@ -77,11 +147,21 @@ export abstract class BaseRepository<T> {
    */
   async update(id: string, data: Partial<T>): Promise<T> {
     try {
+      this.logger.debug(`Updating ${this.collectionName} with id: ${id}`, data);
+
+      // 添加更新时间
+      const dataWithTimestamp = {
+        ...data,
+        updatedAt: new Date().toISOString(),
+      };
+
       const collection = this.db.collection(this.collectionName);
-      const result = await collection.update(id, data, { returnNew: true });
+      const result = await collection.update(id, dataWithTimestamp, { returnNew: true });
+
+      this.logger.debug(`Updated ${this.collectionName} with id: ${id}`);
       return result.new as T;
     } catch (error) {
-      console.error(`Failed to update ${this.collectionName}:`, error);
+      this.logger.error(`Failed to update ${this.collectionName}: ${error.message}`, error.stack);
       throw error;
     }
   }
@@ -93,43 +173,179 @@ export abstract class BaseRepository<T> {
    */
   async delete(id: string): Promise<boolean> {
     try {
+      this.logger.debug(`Deleting ${this.collectionName} with id: ${id}`);
+
       const collection = this.db.collection(this.collectionName);
       await collection.remove(id);
+
+      this.logger.debug(`Deleted ${this.collectionName} with id: ${id}`);
       return true;
     } catch (error) {
-      console.error(`Failed to delete ${this.collectionName}:`, error);
+      this.logger.error(`Failed to delete ${this.collectionName}: ${error.message}`, error.stack);
       throw error;
     }
   }
 
   /**
-   * 创建分页查询
-   * @param filter 过滤条件
-   * @param page 页码
-   * @param pageSize 每页大小
-   * @returns 查询结果
+   * 根据条件删除多个实体
+   * @param filters 过滤条件
+   * @returns 删除的数量
    */
-  protected createPaginatedQuery(filter: string | null, page: number, pageSize: number): aql.Query {
-    const offset = (page - 1) * pageSize;
-    return aql`
-      FOR doc IN ${this.collectionName}
-      ${filter ? aql`FILTER ${filter}` : aql``}
-      LIMIT ${offset}, ${pageSize}
-      RETURN doc
-    `;
+  async deleteMany(filters: FilterCondition[]): Promise<number> {
+    try {
+      this.logger.debug(`Deleting multiple ${this.collectionName}`, { filters });
+
+      let queryStr = aql`FOR doc IN ${this.collectionName}`;
+
+      // 处理过滤条件
+      if (filters && filters.length > 0) {
+        const filterQuery = this.buildFilterQuery(filters);
+        if (filterQuery) {
+          queryStr = aql`${queryStr} FILTER ${filterQuery}`;
+        }
+      }
+
+      // 执行删除
+      queryStr = aql`${queryStr} REMOVE doc IN ${this.collectionName} RETURN OLD`;
+
+      const cursor = await this.db.query(queryStr);
+      const result = await cursor.all();
+
+      this.logger.debug(`Deleted ${result.length} ${this.collectionName}`);
+      return result.length;
+    } catch (error) {
+      this.logger.error(`Failed to delete multiple ${this.collectionName}: ${error.message}`, error.stack);
+      throw error;
+    }
   }
 
   /**
-   * 创建排序查询
-   * @param sortField 排序字段
-   * @param sortDirection 排序方向
-   * @returns 查询结果
+   * 获取分页结果
+   * @param options 查询选项
+   * @returns 分页结果
    */
-  protected createSortedQuery(sortField: string, sortDirection: 'ASC' | 'DESC'): aql.Query {
-    return aql`
-      FOR doc IN ${this.collectionName}
-      SORT doc.${sortField} ${sortDirection === 'ASC' ? 'ASC' : 'DESC'}
-      RETURN doc
-    `;
+  async findWithPagination(options?: QueryOptions): Promise<PaginatedResult<T>> {
+    try {
+      this.logger.debug(`Finding ${this.collectionName} with pagination`, options);
+
+      // 默认分页参数
+      const page = options?.pagination?.page || 1;
+      const limit = options?.pagination?.limit || 20;
+
+      // 构建计数查询
+      let countQuery = aql`FOR doc IN ${this.collectionName}`;
+
+      // 处理过滤条件
+      if (options?.filters && options.filters.length > 0) {
+        const filterQuery = this.buildFilterQuery(options.filters);
+        if (filterQuery) {
+          countQuery = aql`${countQuery} FILTER ${filterQuery}`;
+        }
+      }
+
+      countQuery = aql`${countQuery} COLLECT WITH COUNT INTO total RETURN total`;
+
+      // 执行计数查询
+      const countCursor = await this.db.query<number>(countQuery);
+      const total = await countCursor.next() || 0;
+
+      // 获取数据
+      const items = await this.findAll(options);
+
+      // 计算分页信息
+      const totalPages = Math.ceil(total / limit);
+      const hasNext = page < totalPages;
+      const hasPrevious = page > 1;
+
+      return {
+        items,
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNext,
+        hasPrevious,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to find ${this.collectionName} with pagination: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * 构建过滤查询
+   * @param filters 过滤条件
+   * @returns 查询字符串
+   */
+  protected buildFilterQuery(filters: FilterCondition[]): aql.Query | null {
+    if (!filters || filters.length === 0) {
+      return null;
+    }
+
+    const conditions: aql.Query[] = [];
+
+    for (const filter of filters) {
+      if ('operator' in filter && 'conditions' in filter) {
+        // 处理逻辑运算符 (AND/OR)
+        const subConditions = this.buildFilterQuery(filter.conditions);
+        if (subConditions) {
+          if (filter.operator === 'and') {
+            conditions.push(subConditions);
+          } else if (filter.operator === 'or') {
+            conditions.push(aql`(${subConditions})`);
+          }
+        }
+      } else if ('field' in filter) {
+        // 处理字段过滤
+        switch (filter.operator) {
+          case '==':
+            conditions.push(aql`doc.${filter.field} == ${filter.value}`);
+            break;
+          case '!=':
+            conditions.push(aql`doc.${filter.field} != ${filter.value}`);
+            break;
+          case '>':
+            conditions.push(aql`doc.${filter.field} > ${filter.value}`);
+            break;
+          case '>=':
+            conditions.push(aql`doc.${filter.field} >= ${filter.value}`);
+            break;
+          case '<':
+            conditions.push(aql`doc.${filter.field} < ${filter.value}`);
+            break;
+          case '<=':
+            conditions.push(aql`doc.${filter.field} <= ${filter.value}`);
+            break;
+          case 'in':
+            conditions.push(aql`doc.${filter.field} IN ${filter.value}`);
+            break;
+          case 'not in':
+            conditions.push(aql`doc.${filter.field} NOT IN ${filter.value}`);
+            break;
+          case 'like':
+            conditions.push(aql`LIKE(doc.${filter.field}, ${filter.value}, true)`);
+            break;
+          case 'not like':
+            conditions.push(aql`NOT LIKE(doc.${filter.field}, ${filter.value}, true)`);
+            break;
+          case 'exists':
+            conditions.push(aql`HAS(doc, ${filter.field})`);
+            break;
+          case 'not exists':
+            conditions.push(aql`!HAS(doc, ${filter.field})`);
+            break;
+        }
+      }
+    }
+
+    if (conditions.length === 0) {
+      return null;
+    }
+
+    if (conditions.length === 1) {
+      return conditions[0];
+    }
+
+    return aql.join(conditions, ' AND ');
   }
 }

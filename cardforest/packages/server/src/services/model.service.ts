@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { NotFoundError, ValidationError, ForbiddenError } from '../common/errors';
 import { ModelRepository } from '../repositories/model.repository';
 import {
   Model,
@@ -39,7 +40,7 @@ export class ModelService {
       this.logger.log(`Getting model by ID: ${id}`);
       const model = await this.getModelWithInheritance(id);
       if (!model) {
-        throw new Error('Model not found');
+        throw new NotFoundError(`Model with ID ${id} not found`, { modelId: id });
       }
       return this.flattenModel(model);
     } catch (error) {
@@ -53,15 +54,15 @@ export class ModelService {
       this.logger.log(`Getting full model by ID: ${id}`);
       const model = await this.modelRepository.findById(id);
       if (!model) {
-        throw new Error('Model not found');
+        throw new NotFoundError(`Model with ID ${id} not found`, { modelId: id });
       }
       return model;
     } catch (error) {
-      if (error.message === 'Model not found') {
+      if (error instanceof NotFoundError) {
         throw error;
       }
       this.logger.error(`Failed to get full model by id: ${error.message}`, error.stack);
-      throw new Error('Failed to get model');
+      throw new NotFoundError('Failed to get model', { originalError: error.message });
     }
   }
 
@@ -108,18 +109,24 @@ export class ModelService {
   }
 
   validateFields(fields: FieldGroup[]): void {
-    fields.forEach((group) => {
+    const errors: Record<string, any> = {};
+
+    fields.forEach((group, groupIndex) => {
       if (!group._inherit_from) {
-        throw new Error('Field group must have _inherit_from property');
+        errors[`group[${groupIndex}]._inherit_from`] = 'Field group must have _inherit_from property';
+        return;
       }
 
-      group.fields.forEach((field) => {
+      group.fields.forEach((field, fieldIndex) => {
+        const fieldPath = `group[${groupIndex}].fields[${fieldIndex}]`;
+
         if (!field.name || !field.type) {
-          throw new Error('Field must have name and type');
+          errors[fieldPath] = 'Field must have name and type';
+          return;
         }
 
         if (!this.isValidFieldType(field.type)) {
-          throw new Error(`Invalid field type: ${field.type}`);
+          errors[`${fieldPath}.type`] = `Invalid field type: ${field.type}`;
         }
 
         // Validate select/multiselect options
@@ -127,12 +134,14 @@ export class ModelService {
           (field.type === 'select' || field.type === 'multiselect') &&
           (!field.config?.options || !Array.isArray(field.config.options))
         ) {
-          throw new Error(
-            `${field.type} field must have options array in config`,
-          );
+          errors[`${fieldPath}.config.options`] = `${field.type} field must have options array in config`;
         }
       });
     });
+
+    if (Object.keys(errors).length > 0) {
+      throw new ValidationError('Invalid field definitions', { fields: errors });
+    }
   }
 
   validateCardData(model: Model, cardData: any): void {
@@ -144,6 +153,8 @@ export class ModelService {
       (g) => g._inherit_from !== '_self' && g._inherit_from !== 'basic',
     );
 
+    const errors: Record<string, string> = {};
+
     // Validate basic fields
     if (basicGroup) {
       basicGroup.fields.forEach((field) => {
@@ -152,10 +163,13 @@ export class ModelService {
           field.required &&
           (value === undefined || value === null || value === '')
         ) {
-          throw new Error(`Missing required field: ${field.name}`);
-        }
-        if (value !== undefined && value !== null) {
-          this.validateFieldValue(field.name, value, field);
+          errors[field.name] = `Missing required field: ${field.name}`;
+        } else if (value !== undefined && value !== null) {
+          try {
+            this.validateFieldValue(field.name, value, field);
+          } catch (error) {
+            errors[field.name] = error.message;
+          }
         }
       });
     }
@@ -169,13 +183,20 @@ export class ModelService {
             field.required &&
             (value === undefined || value === null || value === '')
           ) {
-            throw new Error(`Missing required field: ${field.name}`);
-          }
-          if (value !== undefined && value !== null) {
-            this.validateFieldValue(`meta.${field.name}`, value, field);
+            errors[`meta.${field.name}`] = `Missing required field: ${field.name}`;
+          } else if (value !== undefined && value !== null) {
+            try {
+              this.validateFieldValue(`meta.${field.name}`, value, field);
+            } catch (error) {
+              errors[`meta.${field.name}`] = error.message;
+            }
           }
         });
       });
+    }
+
+    if (Object.keys(errors).length > 0) {
+      throw new ValidationError('Card data validation failed', { fields: errors });
     }
   }
 
@@ -314,19 +335,28 @@ export class ModelService {
       }
 
       if (model.system) {
-        throw new Error('Cannot delete system model');
+        throw new ForbiddenError('Cannot delete system model', {
+          modelId,
+          reason: 'system_model'
+        });
       }
 
       // 检查是否有其他模型继承自此模型
       const hasChildren = await this.modelRepository.hasChildren(modelId);
       if (hasChildren) {
-        throw new Error('Cannot delete model with children');
+        throw new ForbiddenError('Cannot delete model with children', {
+          modelId,
+          reason: 'has_children'
+        });
       }
 
       // 检查是否有卡片使用此模型
       const isUsedByCards = await this.modelRepository.isUsedByCards(modelId);
       if (isUsedByCards) {
-        throw new Error('Cannot delete model in use by cards');
+        throw new ForbiddenError('Cannot delete model in use by cards', {
+          modelId,
+          reason: 'used_by_cards'
+        });
       }
 
       await this.modelRepository.delete(modelId);

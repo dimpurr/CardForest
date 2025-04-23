@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, APP_GUARD } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
@@ -19,16 +19,25 @@ import { DatabaseModule } from './database.module';
 import { RepositoryModule } from './repository.module';
 import { UserModule } from './user.module';
 import { AuthModule } from './auth.module';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { LoggerModule } from './logger.module';
 import { CardController } from 'src/controllers/card.controller';
 import { AuthController } from '../controllers/auth.controller';
 import { InstallController } from '../controllers/install.controller';
 import { ModelController } from '../controllers/model.controller';
+import { GraphqlExceptionFilter } from '../common/filters/graphql-exception.filter';
 
 @Module({
   imports: [
+    // 配置模块
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+
+    // 日志模块
+    LoggerModule,
+
+    // GraphQL 模块
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       typePaths: ['./**/*.graphql'],
@@ -41,45 +50,22 @@ import { ModelController } from '../controllers/model.controller';
         },
       },
       context: ({ req, res }) => {
-        console.log('GraphQL Context - Headers:', req.headers);
-        console.log('GraphQL Context - Cookies:', req.cookies);
+        // 使用结构化日志记录请求信息
+        const logger = new GraphqlExceptionFilter().logger;
+        logger.debug('GraphQL Context', {
+          headers: req.headers,
+          cookies: req.cookies,
+          user: req.user,
+        });
         return { req, res };
       },
-      formatError: (error: any) => {
-        console.error('GraphQL Error:', error);
-
-        interface OriginalError {
-          message?: string;
-          code?: string;
-        }
-
-        interface ErrorExtensions {
-          originalError?: OriginalError;
-          code?: string;
-        }
-
-        const extensions = error.extensions as ErrorExtensions | undefined;
-        const originalError = extensions?.originalError;
-
-        // 处理 extensions 中的错误信息
-        if (originalError) {
-          return {
-            message: originalError.message ?? error.message,
-            code: originalError.code ?? extensions?.code ?? 'INTERNAL_SERVER_ERROR',
-            locations: error.locations,
-            path: error.path,
-          };
-        }
-
-        // 返回原始错误
-        return {
-          message: error.message,
-          code: extensions?.code ?? 'INTERNAL_SERVER_ERROR',
-          locations: error.locations,
-          path: error.path,
-        };
+      // 使用自定义的 GraphQL 异常过滤器
+      formatError: (error) => {
+        return new GraphqlExceptionFilter().formatError(error);
       },
     }),
+
+    // 功能模块
     UserModule,
     DatabaseModule,
     AuthModule,
@@ -98,6 +84,11 @@ import { ModelController } from '../controllers/model.controller';
     UserResolver,
     ModelResolver,
     AuthResolver,
+    // 全局 JWT 认证守卫
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
   ],
 })
 export class AppModule {}

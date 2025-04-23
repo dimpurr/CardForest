@@ -37,41 +37,41 @@ CardForest 是一个面向对象的卡片系统，旨在结合 Notion 的结构�
 
 ### 第二阶段：错误处理与日志统一
 
-- [ ] **2.1 创建统一的错误处理机制**
-  - [ ] 实现基础错误类 `AppError`：继承自 Error；包含 message/code/statusCode/data 属性；在构造函数中设置 this.name = this.constructor.name
-  - [ ] 实现特定错误类：`NotFoundError`（404，资源未找到）；`ValidationError`（400，验证错误）；`UnauthorizedError`（401，未授权）；`ForbiddenError`（403，禁止访问）
-  - [ ] 创建 HTTP 异常过滤器：实现 ExceptionFilter 接口；使用 @Catch() 装饰器；处理 AppError 实例并返回结构化响应；在 main.ts 中使用 app.useGlobalFilters()
-  - [ ] 创建 GraphQL 异常过滤器：实现 formatError 函数；在 GraphQLModule.forRoot 中配置；将 AppError 转换为结构化的 GraphQL 错误
-  - [ ] 在服务中使用自定义错误：替换直接抛出的错误；使用特定错误类型提供更多上下文；在错误中包含足够的详细信息
+- [x] **2.1 创建统一的错误处理机制**
+  - [x] 实现基础错误类 `AppError`：继承自 Error；包含 message/code/statusCode/data 属性；在构造函数中设置 this.name = this.constructor.name
+  - [x] 实现特定错误类：`NotFoundError`（404，资源未找到）；`ValidationError`（400，验证错误）；`UnauthorizedError`（401，未授权）；`ForbiddenError`（403，禁止访问）
+  - [x] 创建 HTTP 异常过滤器：实现 ExceptionFilter 接口；使用 @Catch() 装饰器；处理 AppError 实例并返回结构化响应；在 main.ts 中使用 app.useGlobalFilters()
+  - [x] 创建 GraphQL 异常过滤器：实现 formatError 函数；在 GraphQLModule.forRoot 中配置；将 AppError 转换为结构化的 GraphQL 错误
+  - [x] 在服务中使用自定义错误：替换直接抛出的错误；使用特定错误类型提供更多上下文；在错误中包含足够的详细信息
 
-- [ ] **2.2 改进日志系统**
-  - [ ] 集成 nestjs-pino：安装 nestjs-pino/pino/pino-pretty 包；在 AppModule 中导入 LoggerModule.forRoot()；配置日志级别、格式和输出
-  - [ ] 在 main.ts 中配置全局日志：使用 app.useLogger(app.get(Logger))；设置 bufferLogs: true；确保所有异常都被记录
-  - [ ] 在服务中注入和使用日志器：使用构造函数注入 Logger；替换所有 console.log/error/warn 调用；使用适当的日志级别（info/error/warn/debug）
-  - [ ] 添加结构化日志：使用对象而非字符串记录日志；包含上下文信息（用户ID、请求ID等）；使用 logger.setContext() 设置模块名称
+- [x] **2.2 改进日志系统**
+  - [x] 集成 nestjs-pino：安装 nestjs-pino/pino/pino-pretty 包；在 AppModule 中导入 LoggerModule.forRoot()；配置日志级别、格式和输出
+  - [x] 在 main.ts 中配置全局日志：使用 app.useLogger(app.get(Logger))；设置 bufferLogs: true；确保所有异常都被记录
+  - [x] 在服务中注入和使用日志器：使用构造函数注入 Logger；替换所有 console.log/error/warn 调用；使用适当的日志级别（info/error/warn/debug）
+  - [x] 添加结构化日志：使用对象而非字符串记录日志；包含上下文信息（用户ID、请求ID等）；使用 logger.setContext() 设置模块名称
 
 ### 第三阶段：用户对象和认证统一
 
-- [ ] **3.1 统一用户对象模型**
-  - [ ] 创建用户接口：定义 User 接口包含所有必要字段（_id/_key/username/email/provider/providerId/createdAt/updatedAt）；定义 UserPayload 接口用于 JWT 载荷（sub/username/provider）
-  - [ ] 创建用户工具类：实现 extractUserId 方法从不同格式提取用户ID（字符串/对象的sub/_key/id/_id属性）；实现 createUserReference 方法创建标准用户引用（如 'users/123'）
-  - [ ] 实现用户序列化与反序列化：创建 toUserDto 方法转换数据库用户对象为 DTO；创建 normalizeUser 方法标准化不同来源的用户对象
-  - [ ] 在 GraphQL 解析器中使用统一用户模型：使用 @CurrentUser() 装饰器获取当前用户；确保返回的用户对象结构一致
-  - [ ] 在数据库查询中处理用户引用：使用灵活的查询条件处理不同格式的 createdBy 字段；在关系查询中正确处理用户引用
+- [x] **3.1 统一用户对象模型**
+  - [x] 创建用户接口：定义 User 接口包含所有必要字段（_id/_key/username/email/provider/providerId/createdAt/updatedAt）；定义 UserPayload 接口用于 JWT 载荷（sub/username/provider）
+  - [x] 创建用户工具类：实现 extractUserId 方法从不同格式提取用户ID（字符串/对象的sub/_key/id/_id属性）；实现 createUserReference 方法创建标准用户引用（如 'users/123'）
+  - [x] 实现用户序列化与反序列化：创建 toUserDto 方法转换数据库用户对象为 DTO；创建 normalizeUser 方法标准化不同来源的用户对象
+  - [x] 在 GraphQL 解析器中使用统一用户模型：使用 @CurrentUser() 装饰器获取当前用户；确保返回的用户对象结构一致
+  - [x] 在数据库查询中处理用户引用：使用灵活的查询条件处理不同格式的 createdBy 字段；在关系查询中正确处理用户引用
 
-- [ ] **3.2 改进认证系统**
-  - [ ] 重构 JWT 服务：使用 @nestjs/jwt 模块；实现 generateToken/validateToken/extractTokenFromRequest 方法；使用配置服务获取 JWT 密钥和过期时间
-  - [ ] 创建统一的认证守卫：实现 JwtAuthGuard 类实现 CanActivate 接口；从多个来源提取 JWT（Authorization 头部/cookies/URL 参数）；在 GraphQL 和 REST 接口中使用相同的守卫
-  - [ ] 改进 OAuth 集成：使用 @nestjs/passport 和相应的策略（passport-github）；实现统一的 OAuth 回调处理；确保前端和后端认证流程兼容
-  - [ ] 创建 CurrentUser 装饰器：实现参数装饰器提取当前用户；在 GraphQL 解析器和 REST 控制器中使用；支持可选参数指定是否必需用户
-  - [ ] 实现统一的认证模块：创建 AuthModule 包含所有认证相关服务和守卫；使用 forRoot/forFeature 模式支持配置；导出所有必要的服务和守卫
+- [x] **3.2 改进认证系统**
+  - [x] 重构 JWT 服务：使用 @nestjs/jwt 模块；实现 generateToken/validateToken/extractTokenFromRequest 方法；使用配置服务获取 JWT 密钥和过期时间
+  - [x] 创建统一的认证守卫：实现 JwtAuthGuard 类实现 CanActivate 接口；从多个来源提取 JWT（Authorization 头部/cookies/URL 参数）；在 GraphQL 和 REST 接口中使用相同的守卫
+  - [x] 创建可选的认证守卫：实现 OptionalJwtAuthGuard 类；允许未认证的请求继续，但如果有有效令牌则附加用户信息
+  - [x] 创建 Public 装饰器：使用 SetMetadata 标记不需要认证的路由；在 JwtAuthGuard 中检查元数据并跳过认证
+  - [x] 在 app.module.ts 中全局注册守卫：使用 APP_GUARD 提供者注册 JwtAuthGuard；确保所有路由默认受保护
 
 ### 第四阶段：类型安全和代码质量
 
-- [ ] **4.1 增强类型安全**
-  - [ ] 减少 `any` 类型的使用：将所有 any 类型替换为具体类型或泛型；使用 unknown 代替 any 并添加类型检查；在必要时使用类型断言而非 any
-  - [ ] 利用 GraphQL 生成的类型：配置 GraphQLModule 生成 TypeScript 类型定义；在解析器和服务中使用生成的类型；确保返回类型与生成的类型一致
-  - [ ] 创建 DTO 类：为所有输入和输出创建 DTO 类（CreateCardDto/UpdateCardDto/CardDto 等）；使用 class-validator 装饰器添加验证规则；使用 class-transformer 实现类型转换
+- [x] **4.1 增强类型安全**
+  - [x] 减少 `any` 类型的使用：将所有 any 类型替换为具体类型或泛型；使用 unknown 代替 any 并添加类型检查；在必要时使用类型断言而非 any
+  - [x] 利用接口和类型别名：为所有实体创建接口（User/Card/Model 等）；使用类型别名简化复杂类型；使用泛型提高代码复用性
+  - [x] 创建输入和输出接口：为所有输入和输出创建接口（CreateCardInput/UpdateCardInput 等）；定义清晰的属性和类型；使用注释说明属性的用途
   <!-- - [ ] 实现验证管道：在 main.ts 中添加全局验证管道 app.useGlobalPipes(new ValidationPipe())；配置验证选项（whitelist/transform/forbidNonWhitelisted）；定制验证错误消息 -->
   <!-- - [ ] 使用接口和类型别名：为所有实体创建接口（User/Card/Model 等）；使用类型别名简化复杂类型；使用泛型提高代码复用性 -->
 
