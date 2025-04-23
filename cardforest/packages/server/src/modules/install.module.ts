@@ -4,6 +4,7 @@ import { UserModule } from './user.module';
 import { DatabaseModule } from './database.module';
 import { RepositoryModule } from './repository.module';
 import { CardModule } from './card.module';
+import { ModelModule } from './model.module';
 import { InstallController } from '../controllers/install.controller';
 
 /**
@@ -15,6 +16,7 @@ import { InstallController } from '../controllers/install.controller';
     DatabaseModule,
     RepositoryModule,
     CardModule,
+    ModelModule,
   ],
   controllers: [InstallController],
   providers: [

@@ -4,22 +4,16 @@ import { CardResolver } from '../graphql/card.resolver';
 import { CardController } from '../controllers/card.controller';
 import { DatabaseModule } from './database.module';
 import { RepositoryModule } from './repository.module';
-import { ModelService } from '../services/model.service';
+import { ModelModule } from './model.module';
+import { AuthModule } from './auth.module';
 
 /**
  * 卡片模块，提供卡片相关功能
  */
 @Module({
-  imports: [
-    DatabaseModule,
-    RepositoryModule,
-  ],
+  imports: [DatabaseModule, RepositoryModule, ModelModule, AuthModule],
   controllers: [CardController],
-  providers: [
-    CardService,
-    CardResolver,
-    ModelService,
-  ],
-  exports: [CardService, ModelService],
+  providers: [CardService, CardResolver],
+  exports: [CardService],
 })
 export class CardModule {}

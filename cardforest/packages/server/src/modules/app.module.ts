@@ -7,8 +7,6 @@ import { join } from 'path';
 import { AppController } from '../controllers/app.controller';
 import { AppService } from '../services/app.service';
 import { ArangoDBService } from '../services/arangodb.service';
-import { UserResolver } from '../graphql/user.resolver';
-import { ModelResolver } from '../graphql/model.resolver';
 import { AuthResolver } from '../graphql/auth.resolver';
 import { DatabaseModule } from './database.module';
 import { RepositoryModule } from './repository.module';
@@ -16,9 +14,9 @@ import { UserModule } from './user.module';
 import { AuthModule } from './auth.module';
 import { InstallModule } from './install.module';
 import { CardModule } from './card.module';
+import { ModelModule } from './model.module';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { LoggerModule } from './logger.module';
-import { ModelController } from '../controllers/model.controller';
 import { GraphqlExceptionFilter } from '../common/filters/graphql-exception.filter';
 
 @Module({
@@ -67,8 +65,9 @@ import { GraphqlExceptionFilter } from '../common/filters/graphql-exception.filt
     RepositoryModule,
     InstallModule,
     CardModule,
+    ModelModule,
   ],
-  controllers: [AppController, ModelController],
+  controllers: [AppController],
   providers: [
     AppService,
     ArangoDBService,
@@ -76,10 +75,10 @@ import { GraphqlExceptionFilter } from '../common/filters/graphql-exception.filt
     // CardService 已在 CardModule 中提供
     // UserService 已在 UserModule 中提供
     // AuthService 已在 AuthModule 中提供
-    // ModelService 已在 CardModule 中提供
+    // ModelService 已在 ModelModule 中提供
     // CardResolver 已在 CardModule 中提供
-    UserResolver,
-    ModelResolver,
+    // UserResolver 已在 UserModule 中提供
+    // ModelResolver 已在 ModelModule 中提供
     AuthResolver,
     // 全局 JWT 认证守卫
     {

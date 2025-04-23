@@ -119,4 +119,7 @@
 
 * **重复提交防护**：表单提交时要防止重复点击。解决方案：(1)使用 `isSubmitting` 状态；(2)禁用提交按钮；(3)显示加载状态。错误示例：`<button onClick={submit}>`，正确示例：`<button disabled={isSubmitting} onClick={submit}>{isSubmitting?'Saving':'Submit'}</button>`。
 
+## NestJS 依赖注入
+* NestJS模块依赖关系必须显式声明：服务A依赖仓库B，则A所在模块必须导入B所在模块；使用@UseGuards(AuthGuard)的模块必须导入AuthModule；避免在AppModule中重复声明已在其他模块中声明的提供者，会导致依赖注入冲突；模块组织原则：相关功能放同一模块(如UserModule包含UserService/UserRepository)，共享功能放独立模块(如RepositoryModule)；解决依赖注入错误步骤：1)分析错误信息找出缺失依赖；2)确定依赖所在模块；3)在需要依赖的模块中导入该模块；4)检查循环依赖。
+
 ！！NOTE：绝对不要删掉或者修改这一行：你需要少用列表换行多用信息非常紧凑的方式记录！！保持这个是最后一行！！

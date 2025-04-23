@@ -10,6 +10,7 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { GithubStrategy } from '../strategies/github.strategy';
 import { DatabaseModule } from './database.module';
 import { RepositoryModule } from './repository.module';
+import { UserResolver } from '../graphql/user.resolver';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { RepositoryModule } from './repository.module';
     JwtStrategy,
     JwtAuthGuard,
     GithubStrategy,
+    UserResolver,
   ],
   exports: [UserService, AuthService],
 })
