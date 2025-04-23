@@ -81,9 +81,11 @@
 * JWT处理关键：useJWT应该主要检查session状态而非必须要求JWT存在；cookie设置需要{secure:仅生产环境,sameSite:'lax',path:'/',expires:1}；Apollo Client的authLink中用js-cookie替代document.cookie解析；考虑从多个来源获取JWT（session/cookie/URL参数）。
 * 用户对象和认证系统最佳实践：
   1. 统一用户接口：创建 User/UserPayload/UserReference 等接口，定义标准的用户对象结构；使用工具类处理不同格式的用户对象（extractUserId/normalizeUser）；在所有服务中使用统一的用户对象格式。
-  2. 用户ID处理：后端resolver中从user对象提取ID时需考虑多种属性（user.sub/user._key/user.id/user._id）；数据库查询中处理不同格式的createdBy字段（字符串路径如'users/123'或对象如{username:'user'}）；ArangoDB查询中使用灵活的查询条件，如`FILTER card.createdBy == @userRef || (IS_OBJECT(card.createdBy) && card.createdBy.username == @username)`。
+  2. 用户ID处理：后端resolver中从user对象提取ID时需考虑多种属性（user.sub/user._key/user.id/user._id）；数据库查询中处理不同格式的createdBy字段（字符串路径如'users/123'或对象如{username:'user'}）；ArangoDB查询中使用灵活的查询条件，如`FILTER card.createdBy == @userRef || (IS_OBJECT(card.createdBy) && card.createdBy._key == @userId)`。
   3. JWT认证最佳实践：创建专用的JwtService处理令牌生成、验证和提取；从多个来源提取JWT（Authorization头部/cookies/URL参数）；使用全局守卫和Public装饰器管理路由访问权限；使用OptionalJwtAuthGuard处理可选认证的路由。
   4. 用户关联问题排查：Card.createdBy非空但返回null说明数据库中user关联丢失，检查Card创建时的user绑定和GraphQL resolver中的关系查询；使用UserUtils.createUserReference创建标准用户引用。
+  5. 双重认证系统：前端使用AuthService类从多个来源获取JWT(session/cookie/URL)；后端使用JwtService类处理JWT的生成、验证和提取；前端登录页面(/auth/signin)必须同时支持前端NextAuth和后端直接OAuth两种登录方式；认证回调页面(/auth/callback)需要处理两种认证流程；前端使用useAuth钩子提供统一的认证API；后端使用@CurrentUser()装饰器获取当前用户信息。
+  6. 用户对象标准化：前端使用normalizeUser方法统一用户对象格式；后端使用UserUtils.normalizeUser方法标准化用户对象；用户引用必须使用UserUtils.createUserReference方法创建；AQL查询中必须处理多种用户引用格式，如`FILTER u._id == card.createdBy || (IS_OBJECT(card.createdBy) && card.createdBy._id == u._id) || (IS_OBJECT(card.createdBy) && card.createdBy._key == u._key)`。
 * Apollo Client相关问题：
   1. 无限循环原因：fetchPolicy设为cache-and-network导致，改为network-only
   2. 查询跳过原因：skip条件过于严格，如`skip: !isAuthenticated && !jwt`改为只检查session状态

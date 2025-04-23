@@ -2,7 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { aql } from 'arangojs';
 import { BaseRepository } from './base.repository';
 import { ArangoDBService } from '../services/arangodb.service';
-import { User, OAuthProfile } from '../interfaces/user.interface';
+import { User as UserInterface, OAuthProfile } from '../interfaces/user.interface';
+export type User = UserInterface;
 import { UserUtils } from '../utils/user.utils';
 
 /**
@@ -10,7 +11,7 @@ import { UserUtils } from '../utils/user.utils';
  */
 @Injectable()
 export class UserRepository extends BaseRepository<User> {
-  private readonly logger = new Logger(UserRepository.name);
+  protected readonly logger = new Logger(UserRepository.name);
 
   /**
    * 构造函数
@@ -36,7 +37,8 @@ export class UserRepository extends BaseRepository<User> {
       `;
 
       const cursor = await this.db.query(query);
-      const user = cursor.hasNext() ? cursor.next() : null;
+      const hasNext = await cursor.hasNext;
+      const user = hasNext ? await cursor.next() : null;
 
       this.logger.debug(`User found: ${user ? 'yes' : 'no'}`);
       return user;
@@ -63,7 +65,8 @@ export class UserRepository extends BaseRepository<User> {
       `;
 
       const cursor = await this.db.query(query);
-      const user = cursor.hasNext() ? cursor.next() : null;
+      const hasNext = await cursor.hasNext;
+      const user = hasNext ? await cursor.next() : null;
 
       this.logger.debug(`User found: ${user ? 'yes' : 'no'}`);
       return user;

@@ -2,7 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { aql } from 'arangojs';
 import { BaseRepository } from './base.repository';
 import { ArangoDBService } from '../services/arangodb.service';
-import { Card, CardRelation, CreateCardRelationInput } from '../interfaces/card.interface';
+import { Card as CardInterface, CardRelation, CreateCardRelationInput } from '../interfaces/card.interface';
+export type Card = CardInterface;
 import { UserUtils } from '../utils/user.utils';
 
 /**
@@ -53,7 +54,8 @@ export class CardRepository extends BaseRepository<Card> {
       `;
 
       const cursor = await this.db.query<Card>(query);
-      const result = await cursor.hasNext() ? await cursor.next() : null;
+      const hasNext = await cursor.hasNext;
+      const result = hasNext ? await cursor.next() : null;
 
       this.logger.debug(`Card found: ${result ? 'yes' : 'no'}`);
       return result;
@@ -188,7 +190,14 @@ export class CardRepository extends BaseRepository<Card> {
       const result = await edgeCollection.save(relationData);
 
       this.logger.debug(`Created card relation with id: ${result._key}`);
-      return { ...relationData, _id: result._id, _key: result._key, _rev: result._rev } as CardRelation;
+      return {
+        ...relationData,
+        _id: result._id,
+        _key: result._key,
+        _rev: result._rev,
+        fromId: input.fromId,
+        toId: input.toId
+      } as CardRelation;
     } catch (error) {
       this.logger.error(`Failed to create card relation: ${error.message}`, error.stack);
       throw error;

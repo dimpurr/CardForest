@@ -105,7 +105,7 @@ export class InstallService {
           },
           {
             name: 'content',
-            type: 'richtext',
+            type: 'richtext' as any,
             required: false,
           },
         ],

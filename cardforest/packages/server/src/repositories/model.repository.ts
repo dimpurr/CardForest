@@ -67,7 +67,7 @@ export class ModelRepository extends BaseRepository<Model> {
 
       // 合并字段
       const mergedFields: FieldGroup[] = [...model.fields];
-      
+
       // 添加继承的字段
       for (const inheritedModel of inheritedModels) {
         if (inheritedModel.fields) {
@@ -76,7 +76,7 @@ export class ModelRepository extends BaseRepository<Model> {
             const existingGroupIndex = mergedFields.findIndex(
               (group) => group._inherit_from === fieldGroup._inherit_from
             );
-            
+
             if (existingGroupIndex === -1) {
               // 如果不存在，添加新的字段组
               mergedFields.push(fieldGroup);
@@ -86,7 +86,7 @@ export class ModelRepository extends BaseRepository<Model> {
                 const existingFieldIndex = mergedFields[existingGroupIndex].fields.findIndex(
                   (f) => f.name === field.name
                 );
-                
+
                 if (existingFieldIndex === -1) {
                   // 如果字段不存在，添加新字段
                   mergedFields[existingGroupIndex].fields.push(field);
@@ -123,7 +123,7 @@ export class ModelRepository extends BaseRepository<Model> {
         RETURN 1
       `;
       const cursor = await this.db.query(query);
-      return cursor.hasNext();
+      return await cursor.hasNext;
     } catch (error) {
       console.error('Failed to check if model has children:', error);
       throw error;
@@ -144,7 +144,7 @@ export class ModelRepository extends BaseRepository<Model> {
         RETURN 1
       `;
       const cursor = await this.db.query(query);
-      return cursor.hasNext();
+      return await cursor.hasNext;
     } catch (error) {
       console.error('Failed to check if model is used by cards:', error);
       throw error;

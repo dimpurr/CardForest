@@ -1,4 +1,6 @@
 import { Database, aql } from 'arangojs';
+import type { GeneratedAqlQuery } from 'arangojs/aql';
+import type { AqlValue } from 'arangojs/aql';
 import { Logger } from '@nestjs/common';
 import { ArangoDocument, PaginationParams, SortParams, PaginatedResult, FilterCondition, QueryOptions } from '../interfaces/common.interface';
 
@@ -40,7 +42,8 @@ export abstract class BaseRepository<T extends ArangoDocument> {
       `;
 
       const cursor = await this.db.query<T>(query);
-      const result = await cursor.hasNext() ? await cursor.next() : null;
+      const hasNext = await cursor.hasNext;
+      const result = hasNext ? await cursor.next() : null;
 
       this.logger.debug(`${this.collectionName} found: ${result ? 'yes' : 'no'}`);
       return result;
@@ -71,14 +74,15 @@ export abstract class BaseRepository<T extends ArangoDocument> {
 
       // 处理排序
       if (options?.sort && options.sort.length > 0) {
-        const sortParts: aql.Query[] = [];
+        const sortParts: GeneratedAqlQuery[] = [];
 
         for (const sort of options.sort) {
           sortParts.push(aql`doc.${sort.field} ${sort.direction === 'asc' ? 'ASC' : 'DESC'}`);
         }
 
         if (sortParts.length > 0) {
-          queryStr = aql`${queryStr} SORT ${aql.join(sortParts, ', ')}`;
+          const joinedSortParts = sortParts.join(', ');
+          queryStr = aql`${queryStr} SORT ${joinedSortParts}`;
         }
       }
 
@@ -129,7 +133,7 @@ export abstract class BaseRepository<T extends ArangoDocument> {
         _id: result._id,
         _key: result._key,
         _rev: result._rev
-      } as T;
+      } as unknown as T;
 
       this.logger.debug(`Created ${this.collectionName} with id: ${result._key}`);
       return createdEntity;
@@ -277,12 +281,12 @@ export abstract class BaseRepository<T extends ArangoDocument> {
    * @param filters 过滤条件
    * @returns 查询字符串
    */
-  protected buildFilterQuery(filters: FilterCondition[]): aql.Query | null {
+  protected buildFilterQuery(filters: FilterCondition[]): GeneratedAqlQuery | null {
     if (!filters || filters.length === 0) {
       return null;
     }
 
-    const conditions: aql.Query[] = [];
+    const conditions: GeneratedAqlQuery[] = [];
 
     for (const filter of filters) {
       if ('operator' in filter && 'conditions' in filter) {
@@ -346,6 +350,7 @@ export abstract class BaseRepository<T extends ArangoDocument> {
       return conditions[0];
     }
 
-    return aql.join(conditions, ' AND ');
+    const joinedConditions = conditions.join(' AND ');
+    return aql`${joinedConditions}`;
   }
 }

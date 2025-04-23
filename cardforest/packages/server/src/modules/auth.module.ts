@@ -10,10 +10,12 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../guards/optional-jwt-auth.guard';
 import { UserModule } from './user.module';
 import { ArangoDBService } from '../services/arangodb.service';
+import { RepositoryModule } from './repository.module';
 
 @Module({
   imports: [
     UserModule,
+    RepositoryModule,
     PassportModule.register({
       defaultStrategy: 'jwt',
       session: false,

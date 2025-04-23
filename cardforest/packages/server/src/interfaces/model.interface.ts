@@ -16,7 +16,11 @@ export type FieldType =
   | 'file'
   | 'image'
   | 'relation'
-  | 'json';
+  | 'json'
+  | 'richtext'
+  | 'url'
+  | 'email'
+  | 'reference';
 
 /**
  * 字段定义

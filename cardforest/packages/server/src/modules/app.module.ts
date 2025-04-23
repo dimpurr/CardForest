@@ -1,4 +1,5 @@
-import { Module, APP_GUARD } from '@nestjs/common';
+import { Module, Logger } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
@@ -6,12 +7,6 @@ import { join } from 'path';
 import { AppController } from '../controllers/app.controller';
 import { AppService } from '../services/app.service';
 import { ArangoDBService } from '../services/arangodb.service';
-import { InstallService } from '../services/install.service';
-import { CardService } from '../services/card.service';
-import { UserService } from '../services/user.service';
-import { AuthService } from '../services/auth.service';
-import { ModelService } from '../services/model.service';
-import { CardResolver } from '../graphql/card.resolver';
 import { UserResolver } from '../graphql/user.resolver';
 import { ModelResolver } from '../graphql/model.resolver';
 import { AuthResolver } from '../graphql/auth.resolver';
@@ -19,11 +14,10 @@ import { DatabaseModule } from './database.module';
 import { RepositoryModule } from './repository.module';
 import { UserModule } from './user.module';
 import { AuthModule } from './auth.module';
+import { InstallModule } from './install.module';
+import { CardModule } from './card.module';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { LoggerModule } from './logger.module';
-import { CardController } from 'src/controllers/card.controller';
-import { AuthController } from '../controllers/auth.controller';
-import { InstallController } from '../controllers/install.controller';
 import { ModelController } from '../controllers/model.controller';
 import { GraphqlExceptionFilter } from '../common/filters/graphql-exception.filter';
 
@@ -51,7 +45,7 @@ import { GraphqlExceptionFilter } from '../common/filters/graphql-exception.filt
       },
       context: ({ req, res }) => {
         // 使用结构化日志记录请求信息
-        const logger = new GraphqlExceptionFilter().logger;
+        const logger = new Logger('GraphQLContext');
         logger.debug('GraphQL Context', {
           headers: req.headers,
           cookies: req.cookies,
@@ -61,7 +55,8 @@ import { GraphqlExceptionFilter } from '../common/filters/graphql-exception.filt
       },
       // 使用自定义的 GraphQL 异常过滤器
       formatError: (error) => {
-        return new GraphqlExceptionFilter().formatError(error);
+        const filter = new GraphqlExceptionFilter();
+        return filter.formatError(error as any);
       },
     }),
 
@@ -70,17 +65,19 @@ import { GraphqlExceptionFilter } from '../common/filters/graphql-exception.filt
     DatabaseModule,
     AuthModule,
     RepositoryModule,
+    InstallModule,
+    CardModule,
   ],
-  controllers: [AppController, CardController, AuthController, InstallController, ModelController],
+  controllers: [AppController, ModelController],
   providers: [
     AppService,
     ArangoDBService,
-    InstallService,
-    CardService,
-    UserService,
-    AuthService,
-    ModelService,
-    CardResolver,
+    // InstallService 已在 InstallModule 中提供
+    // CardService 已在 CardModule 中提供
+    // UserService 已在 UserModule 中提供
+    // AuthService 已在 AuthModule 中提供
+    // ModelService 已在 CardModule 中提供
+    // CardResolver 已在 CardModule 中提供
     UserResolver,
     ModelResolver,
     AuthResolver,

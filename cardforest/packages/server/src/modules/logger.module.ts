@@ -51,7 +51,7 @@ import { LoggerModule as PinoLoggerModule } from 'nestjs-pino';
         customProps: (req, res) => {
           return {
             context: 'HTTP',
-            user: req.user?.sub || req.user?._key || 'anonymous',
+            user: (req as any).user?.sub || (req as any).user?._key || 'anonymous',
           };
         },
         // 自定义成功级别

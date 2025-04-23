@@ -9,6 +9,7 @@ import { JwtStrategy } from '../strategies/jwt.strategy';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { GithubStrategy } from '../strategies/github.strategy';
 import { DatabaseModule } from './database.module';
+import { RepositoryModule } from './repository.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { DatabaseModule } from './database.module';
       signOptions: { expiresIn: '60s' },
     }),
     DatabaseModule,
+    RepositoryModule,
   ],
   controllers: [UserController, AuthController], // 现在包含 AuthController
   providers: [

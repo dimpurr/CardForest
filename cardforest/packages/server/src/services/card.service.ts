@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { NotFoundError, ValidationError, ForbiddenError, UnauthorizedError } from '../common/errors';
 import { ModelService } from './model.service';
+import { ArangoDBService } from './arangodb.service';
 import { CardRepository, Card } from '../repositories/card.repository';
 
 interface CreateCardDto {
@@ -25,7 +26,12 @@ export class CardService {
   constructor(
     private readonly cardRepository: CardRepository,
     private readonly modelService: ModelService,
+    private readonly arangoDBService: ArangoDBService,
   ) {}
+
+  private get db() {
+    return this.arangoDBService.getDatabase();
+  }
 
   async createCard(
     input: CreateCardDto,
@@ -322,7 +328,14 @@ export class CardService {
         });
       }
 
-      await this.cardRepository.createRelation(fromCardId, toCardId);
+      await this.cardRepository.createRelation(
+        {
+          fromId: fromCardId,
+          toId: toCardId,
+          type: 'default'
+        },
+        userId
+      );
       this.logger.log(`Created relation from card ${fromCardId} to card ${toCardId}`);
     } catch (error) {
       this.logger.error(`Failed to create relation: ${error.message}`, error.stack);
