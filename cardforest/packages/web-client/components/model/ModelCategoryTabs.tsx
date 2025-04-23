@@ -1,4 +1,4 @@
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 
 export type ModelCategory = 'all' | 'system' | 'custom';
 
@@ -11,8 +11,9 @@ interface ModelCategoryTabsProps {
 export function ModelCategoryTabs({ value, onChange, className = '' }: ModelCategoryTabsProps) {
   return (
     <Tabs
+      defaultValue={value}
       value={value}
-      onValueChange={(val) => onChange(val as ModelCategory)}
+      onValueChange={(val: string) => onChange(val as ModelCategory)}
       className={className}
     >
       <TabsList className="bg-gray-100 dark:bg-gray-800">

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from './tabs';
 import { Squares2X2Icon, ListBulletIcon, TableCellsIcon } from '@heroicons/react/24/outline';
 
 export type ViewMode = 'grid' | 'list' | 'table';
@@ -13,8 +13,9 @@ interface ViewSelectorProps {
 export function ViewSelector({ value, onChange, className = '' }: ViewSelectorProps) {
   return (
     <Tabs
+      defaultValue={value}
       value={value}
-      onValueChange={(val) => onChange(val as ViewMode)}
+      onValueChange={(val: string) => onChange(val as ViewMode)}
       className={className}
     >
       <TabsList className="bg-gray-100 dark:bg-gray-800">
